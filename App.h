@@ -21,6 +21,8 @@ typedef struct App {
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkPhysicalDevice physicalDevice;
+    VkDevice device;
+    VkQueue graphicsQueue;
 } App;
 
 int run(App *app);

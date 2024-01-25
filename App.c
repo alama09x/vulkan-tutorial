@@ -1,7 +1,8 @@
 #include "App.h"
 #include "instance.h"
-#include "physical_device.h"
 #include "validation.h"
+#include "physical_device.h"
+#include "logical_device.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -29,6 +30,7 @@ int initVulkan(App *app)
     createInstance(app);
     setupDebugMessenger(app);
     pickPhysicalDevice(app);
+    createLogicalDevice(app);
     return EXIT_SUCCESS;
 }
 
@@ -42,6 +44,7 @@ int mainLoop(App *app)
 
 int cleanup(App *app)
 {
+    cleanupDevice(app);
     cleanupValidation(app);
     cleanupInstance(app);
 
