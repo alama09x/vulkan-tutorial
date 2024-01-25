@@ -20,6 +20,7 @@ typedef struct App {
     GLFWwindow *window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
+    VkPhysicalDevice physicalDevice;
 } App;
 
 int run(App *app);

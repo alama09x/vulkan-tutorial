@@ -1,5 +1,6 @@
 #include "App.h"
 #include "instance.h"
+#include "physical_device.h"
 #include "validation.h"
 
 const uint32_t WIDTH = 800;
@@ -27,6 +28,7 @@ int initVulkan(App *app)
 {
     createInstance(app);
     setupDebugMessenger(app);
+    pickPhysicalDevice(app);
     return EXIT_SUCCESS;
 }
 

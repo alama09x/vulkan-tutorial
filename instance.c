@@ -4,7 +4,7 @@
 int createInstance(App *app)
 {
     if (ENABLE_VALIDATION_LAYERS && !checkValidationLayerSupport()) {
-        fputs("Error: validation layers requested but not available!", stderr);        
+        fputs("Error: validation layers requested but not available!\n", stderr);        
         return EXIT_FAILURE;
     }
     
@@ -47,7 +47,7 @@ int createInstance(App *app)
     }
 
     if (vkCreateInstance(&createInfo, NULL, &app->instance) != VK_SUCCESS) {
-        fputs("Error: failed to create instance!", stderr);
+        fputs("Error: failed to create instance!\n", stderr);
         return EXIT_FAILURE;
     }
 

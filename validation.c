@@ -20,7 +20,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
     void *pUserData)
 {
-    fprintf(stderr, "Validation error: %s\n", pCallbackData->pMessage);
+    fprintf(stderr, "Validation layer: %s\n", pCallbackData->pMessage);
     return VK_FALSE;
 }
 
@@ -87,7 +87,7 @@ const char **getRequiredExtensions(uint32_t *pExtensionCount)
         ? glfwExtensionCount + 1
         : glfwExtensionCount;
 
-    const char **extensions = malloc(sizeof(*extensions) * *pExtensionCount);
+    const char **extensions = calloc(*pExtensionCount, sizeof(*extensions));
     extensions = glfwExtensions;
 
     if (ENABLE_VALIDATION_LAYERS)
@@ -120,7 +120,7 @@ int setupDebugMessenger(App *app)
     if (createDebugUtilsMessengerEXT(app->instance, &createInfo, NULL, &app->debugMessenger)
         != VK_SUCCESS
     ) {
-        fputs("Error: failed to set up debug messenger!", stderr);
+        fputs("Error: failed to set up debug messenger!\n", stderr);
         return EXIT_FAILURE;
     }
 
