@@ -15,9 +15,11 @@ struct application {
     GLFWwindow *window;
     VkInstance instance;
     VkDebugUtilsMessengerEXT debug_messenger;
+    VkSurfaceKHR surface;
     VkPhysicalDevice physical_device;
     VkDevice device;
     VkQueue graphics_queue;
+    VkQueue present_queue;
 };
 
 enum app_result {

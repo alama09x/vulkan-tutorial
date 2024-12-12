@@ -25,6 +25,18 @@ const char *const VALIDATION_LAYERS[] = {
 static const uint32_t WIDTH = 800;
 static const uint32_t HEIGHT = 600;
 
+static enum app_result create_surface(struct application *app)
+{
+    if (glfwCreateWindowSurface(app->instance, app->window, NULL, &app->surface)
+        != VK_SUCCESS)
+    {
+        fputs("Error: failed to create window surface!\n", stderr);
+        return APP_ERROR;
+    }
+
+    return APP_SUCCESS;
+}
+
 static enum app_result init_window(struct application *app)
 {
     glfwInit();
@@ -48,6 +60,11 @@ static enum app_result init_vulkan(struct application *app)
 
     if ((result = setup_debug_messenger(app)) != APP_SUCCESS) {
         fputs("Error: failed to setup debug messenger!\n", stderr);
+        return result;
+    }
+
+    if ((result = create_surface(app)) != APP_SUCCESS) {
+        fputs("Error: failed to create window surface!\n", stderr);
         return result;
     }
 
@@ -82,6 +99,11 @@ static enum app_result cleanup(struct application *app)
     if (ENABLE_VALIDATION_LAYERS) {
         DestroyDebugUtilsMessengerEXT(app->instance, app->debug_messenger, NULL);
     }
+
+    if (app->surface) {
+        vkDestroySurfaceKHR(app->instance, app->surface, NULL);
+    }
+
     if (app->instance) {
         vkDestroyInstance(app->instance, NULL);
     }

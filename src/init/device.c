@@ -5,11 +5,12 @@
 
 static bool queue_family_indices_complete(const struct queue_family_indices *indices)
 {
-    return indices->graphics_family != NULL;
+    return indices->graphics_family != NULL && indices->present_family != NULL;
 }
 
 static void find_queue_families(
     VkPhysicalDevice device,
+    VkSurfaceKHR surface,
     const struct queue_family_indices *indices)
 {
     uint32_t queue_family_count = 0;
@@ -23,22 +24,30 @@ static void find_queue_families(
             *indices->graphics_family = i;
         }
 
+        VkBool32 present_support = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &present_support);
+        if (present_support) {
+            *indices->present_family = i;
+        }
+
         if (queue_family_indices_complete(indices)) {
             break;
         }
     }
 }
 
-static bool device_suitable(VkPhysicalDevice device)
+static bool device_suitable(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
     const struct queue_family_indices indices = {
         .graphics_family = malloc(sizeof(uint32_t)),
+        .present_family = malloc(sizeof(uint32_t)),
     };
-    find_queue_families(device, &indices);
+    find_queue_families(device, surface, &indices);
 
     bool result = queue_family_indices_complete(&indices);
 
     free(indices.graphics_family);
+    free(indices.present_family);
 
     return result;
 }
@@ -47,23 +56,47 @@ enum app_result create_logical_device(struct application *app)
 {
     const struct queue_family_indices indices = {
         .graphics_family = malloc(sizeof(uint32_t)),        
+        .present_family = malloc(sizeof(uint32_t)),
     };
-    find_queue_families(app->physical_device, &indices);
+    find_queue_families(app->physical_device, app->surface, &indices);
 
+    uint32_t queue_families[] = { *indices.graphics_family, *indices.present_family };
+    uint32_t *unique_queue_families = malloc(QUEUE_FAMILY_INDICES_COUNT * sizeof(uint32_t));
+    uint32_t unique_count = 0;
+
+    for (uint8_t i = 0; i < QUEUE_FAMILY_INDICES_COUNT; i++) {
+        bool unique = true;
+        for (uint8_t j = 0; j < unique_count; j++) {
+            if (queue_families[i] == unique_queue_families[j]) {
+                unique = false;
+                break;
+            }
+        }
+
+        if (unique) {
+            unique_queue_families[unique_count++] = queue_families[i];
+        }
+    }
+
+    VkDeviceQueueCreateInfo queue_create_infos[unique_count];
     const float queue_priority = 1.0;
-    const VkDeviceQueueCreateInfo queue_create_info = {
-        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-        .queueFamilyIndex = *indices.graphics_family,
-        .queueCount = 1,
-        .pQueuePriorities = &queue_priority,
-    };
+
+    for (uint8_t i = 0; i < unique_count; i++) {
+        const VkDeviceQueueCreateInfo queue_create_info = {
+            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .queueFamilyIndex = unique_queue_families[i],
+            .queueCount = 1,
+            .pQueuePriorities = &queue_priority,
+        };
+        queue_create_infos[i] = queue_create_info;
+    }
 
     const VkPhysicalDeviceFeatures device_features = {};
 
     VkDeviceCreateInfo create_info = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        .pQueueCreateInfos = &queue_create_info,
-        .queueCreateInfoCount = 1,
+        .pQueueCreateInfos = queue_create_infos,
+        .queueCreateInfoCount = unique_count,
         .pEnabledFeatures = &device_features,
         .enabledExtensionCount = 0,
         .enabledLayerCount = 0,
@@ -79,8 +112,11 @@ enum app_result create_logical_device(struct application *app)
     }
 
     vkGetDeviceQueue(app->device, *indices.graphics_family, 0, &app->graphics_queue);
+    vkGetDeviceQueue(app->device, *indices.present_family, 0, &app->present_queue);
 
+    free(unique_queue_families);
     free(indices.graphics_family);
+    free(indices.present_family);
     return APP_SUCCESS;
 }
 
@@ -99,7 +135,7 @@ enum app_result pick_physical_device(struct application *app)
     vkEnumeratePhysicalDevices(app->instance, &device_count, devices);
 
     for (uint32_t i = 0; i < device_count; i++) {
-        if (device_suitable(devices[i])) {
+        if (device_suitable(devices[i], app->surface)) {
             app->physical_device = devices[i];
             break;
         }
