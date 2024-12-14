@@ -3,7 +3,7 @@
 
 int main()
 {
-    struct application *app = malloc(APPLICATION_STRUCT_SIZE);
+    struct application *app = malloc(sizeof(*app));
     app_run(app);
     free(app);
     return EXIT_SUCCESS;

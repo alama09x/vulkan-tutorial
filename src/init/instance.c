@@ -67,18 +67,13 @@ enum app_result create_instance(struct application *app)
     const char *req_extensions[req_ext_count];
     get_required_extensions(&req_ext_count, req_extensions);
 
-    puts("Required extensions:");
-    for (uint32_t i = 0; i < req_ext_count; i++) {
-        printf("\t%s\n", req_extensions[i]);
-    }
-
     uint32_t avb_ext_count = 0;
     vkEnumerateInstanceExtensionProperties(NULL, &avb_ext_count, NULL);
 
     VkExtensionProperties avb_extensions[avb_ext_count];
     vkEnumerateInstanceExtensionProperties(NULL, &avb_ext_count, avb_extensions);
 
-    puts("Available extensions:");
+    puts("Available instance extensions:");
     for (uint32_t i = 0; i < avb_ext_count; i++) {
         printf("\t%s\n", avb_extensions[i].extensionName);
     }
@@ -98,9 +93,7 @@ enum app_result create_instance(struct application *app)
         .pApplicationInfo = &app_info,
         .enabledExtensionCount = req_ext_count,
         .ppEnabledExtensionNames = req_extensions,
-        .enabledLayerCount = 0,
     };
-
     VkDebugUtilsMessengerCreateInfoEXT debug_create_info;
     if (ENABLE_VALIDATION_LAYERS) {
         create_info.enabledLayerCount = VALIDATION_LAYER_COUNT;
@@ -109,6 +102,8 @@ enum app_result create_instance(struct application *app)
         debug_create_info = configure_debug_messenger_create_info();
 
         create_info.pNext = &debug_create_info;
+    } else {
+        create_info.enabledLayerCount = 0;
     }
 
 

@@ -2,12 +2,17 @@
 #include <stdio.h>
 #include <string.h>
 
+const uint8_t VALIDATION_LAYER_COUNT = 1;
+const char *const VALIDATION_LAYERS[] = {
+    "VK_LAYER_KHRONOS_validation",
+};
+
 static VkResult CreateDebugUtilsMessengerEXT(
     VkInstance instance,
     const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
     const VkAllocationCallbacks *pAllocator,
-    VkDebugUtilsMessengerEXT *pDebugMessenger)
-{
+    VkDebugUtilsMessengerEXT *pDebugMessenger
+) {
     PFN_vkCreateDebugUtilsMessengerEXT func;
     func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(
         instance,
@@ -23,8 +28,8 @@ static VkResult CreateDebugUtilsMessengerEXT(
 void DestroyDebugUtilsMessengerEXT(
     VkInstance instance,
     VkDebugUtilsMessengerEXT debugMessenger,
-    const VkAllocationCallbacks *pAllocator)
-{
+    const VkAllocationCallbacks *pAllocator
+) {
     PFN_vkDestroyDebugUtilsMessengerEXT func;
     func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(
         instance,
@@ -39,8 +44,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-    void *user_data)
-{
+    void *user_data
+) {
     fprintf(stderr, "Validation layer: %s\n", pCallbackData->pMessage);
 
     return VK_FALSE;
@@ -88,7 +93,8 @@ VkDebugUtilsMessengerCreateInfoEXT configure_debug_messenger_create_info()
     };
 }
 
-enum app_result setup_debug_messenger(struct application *app) {
+enum app_result setup_debug_messenger(struct application *app)
+{
     if (!ENABLE_VALIDATION_LAYERS) {
         return APP_SUCCESS;
     }

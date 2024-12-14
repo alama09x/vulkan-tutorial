@@ -7,9 +7,6 @@
 #include <stdint.h>
 
 extern const bool ENABLE_VALIDATION_LAYERS;
-extern const char *const VALIDATION_LAYERS[];
-extern const uint8_t VALIDATION_LAYER_COUNT;
-extern const uint32_t APPLICATION_STRUCT_SIZE;
 
 struct application {
     GLFWwindow *window;
@@ -20,6 +17,12 @@ struct application {
     VkDevice device;
     VkQueue graphics_queue;
     VkQueue present_queue;
+    VkSwapchainKHR swapchain;
+    uint32_t swapchain_image_count;
+    VkImage *swapchain_images;
+    VkFormat swapchain_image_format;
+    VkExtent2D swapchain_extent;
+    VkImageView *swapchain_image_views;
 };
 
 enum app_result {

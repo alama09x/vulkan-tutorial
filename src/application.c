@@ -3,6 +3,8 @@
 #include "init/device.h"
 #include "init/instance.h"
 #include "init/validation.h"
+#include "init/swapchain.h"
+#include "init/graphics_pipeline.h"
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -14,13 +16,6 @@ const bool ENABLE_VALIDATION_LAYERS = false;
 #else
 const bool ENABLE_VALIDATION_LAYERS = true;
 #endif
-
-const uint32_t APPLICATION_STRUCT_SIZE = sizeof(struct application);
-
-const uint8_t VALIDATION_LAYER_COUNT = 1;
-const char *const VALIDATION_LAYERS[] = {
-    "VK_LAYER_KHRONOS_validation",
-};
 
 static const uint32_t WIDTH = 800;
 static const uint32_t HEIGHT = 600;
@@ -78,6 +73,21 @@ static enum app_result init_vulkan(struct application *app)
         return result;
     }
 
+    if ((result = create_swapchain(app)) != APP_SUCCESS) {
+        fputs("Error: failed to create swapchain!\n", stderr);
+        return result;
+    }
+
+    if ((result = create_image_views(app)) != APP_SUCCESS) {
+        fputs("Error: failed to create image views!\n", stderr);
+        return result;
+    }
+
+    if ((result = create_graphics_pipeline(app)) != APP_SUCCESS) {
+        fputs("Error: failed to create graphics pipeline!\n", stderr);
+        return result;
+    }
+
     return APP_SUCCESS;
 }
 
@@ -92,25 +102,27 @@ static enum app_result main_loop(struct application *app)
 
 static enum app_result cleanup(struct application *app)
 {
-    if (app->device) {
-        vkDestroyDevice(app->device, NULL);
+    for (uint32_t i = 0; i < app->swapchain_image_count; i++) {
+        vkDestroyImageView(app->device, app->swapchain_image_views[i], NULL);
     }
+
+    if (app->swapchain_image_views) {
+        free(app->swapchain_image_views);
+    }
+    if (app->swapchain_images) {
+        free(app->swapchain_images);
+    }
+
+    vkDestroySwapchainKHR(app->device, app->swapchain, NULL);
+    vkDestroyDevice(app->device, NULL);
 
     if (ENABLE_VALIDATION_LAYERS) {
         DestroyDebugUtilsMessengerEXT(app->instance, app->debug_messenger, NULL);
     }
 
-    if (app->surface) {
-        vkDestroySurfaceKHR(app->instance, app->surface, NULL);
-    }
-
-    if (app->instance) {
-        vkDestroyInstance(app->instance, NULL);
-    }
-
-    if (app->window) {
-        glfwDestroyWindow(app->window);
-    }
+    vkDestroySurfaceKHR(app->instance, app->surface, NULL);
+    vkDestroyInstance(app->instance, NULL);
+    glfwDestroyWindow(app->window);
 
     glfwTerminate();
 

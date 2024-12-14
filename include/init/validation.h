@@ -3,6 +3,9 @@
 
 #include "application.h"
 
+extern const char *const VALIDATION_LAYERS[];
+extern const uint8_t VALIDATION_LAYER_COUNT;
+
 enum app_result setup_debug_messenger(struct application *app);
 
 bool check_validation_layer_support();
