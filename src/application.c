@@ -8,6 +8,8 @@
 #include "init/graphics_pipeline.h"
 #include "init/framebuffers.h"
 #include "init/commands.h"
+#include "init/sync_objects.h"
+#include "init/draw_frame.h"
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -23,95 +25,6 @@ const bool ENABLE_VALIDATION_LAYERS = true;
 static const uint32_t WIDTH = 800;
 static const uint32_t HEIGHT = 600;
 
-enum app_result draw_frame(struct application *app)
-{
-    vkWaitForFences(app->device, 1, &app->in_flight_fence, VK_TRUE, UINT64_MAX);
-    vkResetFences(app->device, 1, &app->in_flight_fence);
-
-    uint32_t image_index;
-    vkAcquireNextImageKHR(
-        app->device,
-        app->swapchain,
-        UINT64_MAX,
-        app->image_available_semaphore,
-        VK_NULL_HANDLE,
-        &image_index);
-
-    vkResetCommandBuffer(app->command_buffer, 0);
-    record_command_buffer(app, app->command_buffer, image_index);
-
-    const VkSemaphore wait_semaphores[] = { app->image_available_semaphore };
-    const VkPipelineStageFlags wait_stages[] = {
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-    };
-
-    const VkSemaphore signal_semaphores[] = { app->render_finished_semaphore };
-
-    const VkSubmitInfo submit_info = {
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = wait_semaphores, // corresponds with below
-        .pWaitDstStageMask = wait_stages,   // corresponds with above
-        .commandBufferCount = 1,
-        .pCommandBuffers = &app->command_buffer,
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = signal_semaphores,
-    };
-
-    if (vkQueueSubmit(app->graphics_queue, 1, &submit_info, app->in_flight_fence)
-        != VK_SUCCESS)
-    {
-        fputs("Error: failed to submit draw command buffer!\n", stderr);
-        return APP_ERROR;
-    }
-
-    const VkSwapchainKHR swapchains[] = { app->swapchain };
-
-    const VkPresentInfoKHR present_info = {
-        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = signal_semaphores,
-        .swapchainCount = 1,
-        .pSwapchains = swapchains,
-        .pImageIndices = &image_index,
-        .pResults = NULL,
-    };
-
-    vkQueuePresentKHR(app->present_queue, &present_info);
-
-    return APP_SUCCESS;
-}
-
-enum app_result create_sync_objects(struct application *app)
-{
-    const VkSemaphoreCreateInfo semaphore_info = {
-        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-    };
-
-    const VkFenceCreateInfo fence_info = {
-        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-        .flags = VK_FENCE_CREATE_SIGNALED_BIT,
-    };
-
-    if (vkCreateSemaphore(app->device, &semaphore_info, NULL, &app->image_available_semaphore)
-        != VK_SUCCESS ||
-        vkCreateSemaphore(app->device, &semaphore_info, NULL, &app->render_finished_semaphore)
-        != VK_SUCCESS)
-    {
-        fputs("Error: failed to create semaphores!\n", stderr);
-        return APP_ERROR;
-    }
-
-    if (vkCreateFence(app->device, &fence_info, NULL, &app->in_flight_fence)
-        != VK_SUCCESS)
-    {
-        fputs("Error: failed to create fence!\n", stderr);
-        return APP_ERROR;
-    }
-
-    return APP_SUCCESS;
-}
-
 static enum app_result create_surface(struct application *app)
 {
     if (glfwCreateWindowSurface(app->instance, app->window, NULL, &app->surface)
@@ -124,22 +37,29 @@ static enum app_result create_surface(struct application *app)
     return APP_SUCCESS;
 }
 
+static void framebuffer_resize_callback(GLFWwindow *window, int width, int height)
+{
+    struct application *app = (struct application *)glfwGetWindowUserPointer(window);
+    app->framebuffer_resized = true;
+}
+
 static enum app_result init_window(struct application *app)
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
     if (!(app->window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", NULL, NULL))) {
         fputs("Error: failed to create window!\n", stderr);
         return APP_ERROR;
     }
+
+    glfwSetWindowUserPointer(app->window, app);
+    glfwSetFramebufferSizeCallback(app->window, framebuffer_resize_callback);
     return APP_SUCCESS;
 }
 
 static enum app_result init_vulkan(struct application *app)
 {
-    int result = APP_SUCCESS;
+    enum app_result result = APP_SUCCESS;
     if ((result = create_instance(app)) != APP_SUCCESS) {
         fputs("Error: failed to create instance!\n", stderr);
         return result;
@@ -195,7 +115,7 @@ static enum app_result init_vulkan(struct application *app)
         return result;
     }
 
-    if ((result = create_command_buffer(app)) != APP_SUCCESS) {
+    if ((result = create_command_buffers(app)) != APP_SUCCESS) {
         fputs("Error: failed to create command buffer!\n", stderr);
         return result;
     }
@@ -210,9 +130,12 @@ static enum app_result init_vulkan(struct application *app)
 
 static enum app_result main_loop(struct application *app)
 {
+    uint32_t current_frame = 0;
+    app->framebuffer_resized = false;
     while (!glfwWindowShouldClose(app->window)) {
         glfwPollEvents();
-        draw_frame(app);
+        draw_frame(app, current_frame);
+        current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
     vkDeviceWaitIdle(app->device);
@@ -222,31 +145,20 @@ static enum app_result main_loop(struct application *app)
 
 static enum app_result cleanup(struct application *app)
 {
-    vkDestroySemaphore(app->device, app->image_available_semaphore, NULL);
-    vkDestroySemaphore(app->device, app->render_finished_semaphore, NULL);
-    vkDestroyFence(app->device, app->in_flight_fence, NULL);
-
-    vkDestroyCommandPool(app->device, app->command_pool, NULL);
-
-    if (app->swapchain_framebuffers) {
-        for (uint32_t i = 0; i < app->swapchain_image_count; i++) {
-            vkDestroyFramebuffer(app->device, app->swapchain_framebuffers[i], NULL);
-        }
-        free(app->swapchain_framebuffers);
-    }
+    cleanup_swapchain(app);
 
     vkDestroyPipeline(app->device, app->graphics_pipeline, NULL);
     vkDestroyPipelineLayout(app->device, app->pipeline_layout, NULL);
     vkDestroyRenderPass(app->device, app->render_pass, NULL);
 
-    for (uint32_t i = 0; i < app->swapchain_image_count; i++) {
-        vkDestroyImageView(app->device, app->swapchain_image_views[i], NULL);
+    for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        vkDestroySemaphore(app->device, app->image_available_semaphores[i], NULL);
+        vkDestroySemaphore(app->device, app->render_finished_semaphores[i], NULL);
+        vkDestroyFence(app->device, app->in_flight_fences[i], NULL);
     }
 
-    free(app->swapchain_image_views);
-    free(app->swapchain_images);
+    vkDestroyCommandPool(app->device, app->command_pool, NULL);
 
-    vkDestroySwapchainKHR(app->device, app->swapchain, NULL);
     vkDestroyDevice(app->device, NULL);
 
     if (ENABLE_VALIDATION_LAYERS) {
@@ -255,6 +167,7 @@ static enum app_result cleanup(struct application *app)
 
     vkDestroySurfaceKHR(app->instance, app->surface, NULL);
     vkDestroyInstance(app->instance, NULL);
+
     glfwDestroyWindow(app->window);
 
     glfwTerminate();

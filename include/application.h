@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 extern const bool ENABLE_VALIDATION_LAYERS;
+#define MAX_FRAMES_IN_FLIGHT 2
 
 struct application {
     GLFWwindow *window;
@@ -28,10 +29,11 @@ struct application {
     VkPipeline graphics_pipeline;
     VkFramebuffer *swapchain_framebuffers;
     VkCommandPool command_pool;
-    VkCommandBuffer command_buffer;
-    VkSemaphore image_available_semaphore;
-    VkSemaphore render_finished_semaphore;
-    VkFence in_flight_fence;
+    VkCommandBuffer command_buffers[MAX_FRAMES_IN_FLIGHT];
+    VkSemaphore image_available_semaphores[MAX_FRAMES_IN_FLIGHT];
+    VkSemaphore render_finished_semaphores[MAX_FRAMES_IN_FLIGHT];
+    VkFence in_flight_fences[MAX_FRAMES_IN_FLIGHT];
+    bool framebuffer_resized;
 };
 
 enum app_result {

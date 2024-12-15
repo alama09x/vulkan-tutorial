@@ -1,4 +1,5 @@
 #include "init/commands.h"
+#include "application.h"
 #include "init/device.h"
 #include <stdio.h>
 
@@ -22,16 +23,16 @@ enum app_result create_command_pool(struct application *app)
     return APP_SUCCESS;
 }
 
-enum app_result create_command_buffer(struct application *app)
+enum app_result create_command_buffers(struct application *app)
 {
     const VkCommandBufferAllocateInfo alloc_info = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
         .commandPool = app->command_pool,
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = 1,
+        .commandBufferCount = MAX_FRAMES_IN_FLIGHT,
     };
 
-    if (vkAllocateCommandBuffers(app->device, &alloc_info, &app->command_buffer)
+    if (vkAllocateCommandBuffers(app->device, &alloc_info, app->command_buffers)
         != VK_SUCCESS)
     {
         fputs("Error: failure to allocate command buffers!\n", stderr);
