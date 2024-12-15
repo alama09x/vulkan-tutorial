@@ -49,12 +49,8 @@ void find_queue_families(
 
 void cleanup_queue_families(struct queue_family_indices *indices)
 {
-    if (indices->graphics_family) {
-        free(indices->graphics_family);
-    }
-    if (indices->present_family) {
-        free(indices->present_family);
-    }
+    free(indices->graphics_family);
+    free(indices->present_family);
 }
 
 static bool check_device_extension_support(VkPhysicalDevice device)

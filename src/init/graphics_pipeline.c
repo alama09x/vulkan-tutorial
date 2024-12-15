@@ -186,7 +186,7 @@ enum app_result create_graphics_pipeline(struct application *app)
         return APP_ERROR;
     }
 
-    const VkGraphicsPipelineCreateInfo pipeline_create_info = {
+    const VkGraphicsPipelineCreateInfo pipeline_info = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .stageCount = 2,
         .pStages = shader_stages,
@@ -206,7 +206,7 @@ enum app_result create_graphics_pipeline(struct application *app)
     };
 
     if (vkCreateGraphicsPipelines(
-        app->device, NULL, 1, &pipeline_create_info, NULL, &app->graphics_pipeline)
+        app->device, NULL, 1, &pipeline_info, NULL, &app->graphics_pipeline)
         != VK_SUCCESS)
     {
         fputs("Error: failed to create graphics pipeline!\n", stderr);
