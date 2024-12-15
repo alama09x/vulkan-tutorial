@@ -23,6 +23,9 @@ struct application {
     VkFormat swapchain_image_format;
     VkExtent2D swapchain_extent;
     VkImageView *swapchain_image_views;
+    VkRenderPass render_pass;
+    VkPipelineLayout pipeline_layout;
+    VkPipeline graphics_pipeline;
 };
 
 enum app_result {

@@ -4,6 +4,7 @@
 #include "init/instance.h"
 #include "init/validation.h"
 #include "init/swapchain.h"
+#include "init/render_pass.h"
 #include "init/graphics_pipeline.h"
 
 #include <stdio.h>
@@ -83,6 +84,11 @@ static enum app_result init_vulkan(struct application *app)
         return result;
     }
 
+    if ((result = create_render_pass(app)) != APP_SUCCESS) {
+        fputs("Error: failed to create render pass!\n", stderr);
+        return result;
+    }
+
     if ((result = create_graphics_pipeline(app)) != APP_SUCCESS) {
         fputs("Error: failed to create graphics pipeline!\n", stderr);
         return result;
@@ -102,6 +108,10 @@ static enum app_result main_loop(struct application *app)
 
 static enum app_result cleanup(struct application *app)
 {
+    vkDestroyPipeline(app->device, app->graphics_pipeline, NULL);
+    vkDestroyPipelineLayout(app->device, app->pipeline_layout, NULL);
+    vkDestroyRenderPass(app->device, app->render_pass, NULL);
+
     for (uint32_t i = 0; i < app->swapchain_image_count; i++) {
         vkDestroyImageView(app->device, app->swapchain_image_views[i], NULL);
     }
