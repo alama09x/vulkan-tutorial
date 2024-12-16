@@ -25,7 +25,7 @@ static VkResult CreateDebugUtilsMessengerEXT(
     }
 }
 
-void DestroyDebugUtilsMessengerEXT(
+void destroyDebugUtilsMessengerEXT(
     VkInstance instance,
     VkDebugUtilsMessengerEXT debugMessenger,
     const VkAllocationCallbacks *pAllocator
@@ -40,36 +40,36 @@ void DestroyDebugUtilsMessengerEXT(
     }
 }
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-    void *user_data
+    void *pUserData
 ) {
     fprintf(stderr, "Validation layer: %s\n", pCallbackData->pMessage);
 
     return VK_FALSE;
 }
 
-bool check_validation_layer_support()
+bool checkValidationLayerSupport()
 {
-    uint32_t layer_count;
-    vkEnumerateInstanceLayerProperties(&layer_count, NULL);
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, NULL);
     
-    VkLayerProperties available_layers[layer_count];
-    vkEnumerateInstanceLayerProperties(&layer_count, available_layers);
+    VkLayerProperties availableLayers[layerCount];
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers);
 
     for (uint8_t i = 0; i < VALIDATION_LAYER_COUNT; i++) {
-        bool layer_found = false;
+        bool layerFound = false;
 
-        for (uint8_t j = 0; j < layer_count; j++) {
-            if (strcmp(VALIDATION_LAYERS[i], available_layers[j].layerName) == 0) {
-                layer_found = true;
+        for (uint8_t j = 0; j < layerCount; j++) {
+            if (strcmp(VALIDATION_LAYERS[i], availableLayers[j].layerName) == 0) {
+                layerFound = true;
                 break;
             }
         }
 
-        if (!layer_found) {
+        if (!layerFound) {
             return false;
         }
     }
@@ -77,7 +77,7 @@ bool check_validation_layer_support()
     return true;
 }
 
-VkDebugUtilsMessengerCreateInfoEXT configure_debug_messenger_create_info()
+VkDebugUtilsMessengerCreateInfoEXT configureDebugMessengerCreateInfo()
 {
     return (VkDebugUtilsMessengerCreateInfoEXT) {
         .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
@@ -89,18 +89,18 @@ VkDebugUtilsMessengerCreateInfoEXT configure_debug_messenger_create_info()
             = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
             | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
             | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-        .pfnUserCallback = debug_callback,
+        .pfnUserCallback = debugCallback,
     };
 }
 
-enum app_result setup_debug_messenger(struct application *app)
+AppResult setupDebugMessenger(Application *pApp)
 {
     if (!ENABLE_VALIDATION_LAYERS) {
         return APP_SUCCESS;
     }
 
-    VkDebugUtilsMessengerCreateInfoEXT create_info = configure_debug_messenger_create_info();
-    if (CreateDebugUtilsMessengerEXT(app->instance, &create_info, NULL, &app->debug_messenger)
+    VkDebugUtilsMessengerCreateInfoEXT createInfo = configureDebugMessengerCreateInfo();
+    if (CreateDebugUtilsMessengerEXT(pApp->instance, &createInfo, NULL, &pApp->debugMessenger)
         != VK_SUCCESS)
     {
         fputs("Error: failed to set up debug messenger!\n", stderr);

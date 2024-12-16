@@ -4,35 +4,35 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static VkSurfaceFormatKHR choose_swapchain_surface_format(
-    const uint32_t available_format_count,
-    const VkSurfaceFormatKHR *available_formats)
+static VkSurfaceFormatKHR chooseSwapchainSurfaceFormat(
+    const uint32_t availableFormatCount,
+    const VkSurfaceFormatKHR *pAvailableFormats)
 {
-    for (uint32_t i = 0; i < available_format_count; i++) {
-        if (available_formats[i].format == VK_FORMAT_B8G8R8A8_SRGB &&
-            available_formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+    for (uint32_t i = 0; i < availableFormatCount; i++) {
+        if (pAvailableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB &&
+            pAvailableFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
         {
-            return available_formats[i];
+            return pAvailableFormats[i];
         }
     }
 
-    return available_formats[0];
+    return pAvailableFormats[0];
 }
 
-static VkPresentModeKHR choose_swapchain_present_mode(
-    const uint32_t available_present_mode_count,
-    const VkPresentModeKHR *available_present_modes)
+static VkPresentModeKHR chooseSwapchainPresentMode(
+    const uint32_t availablePresentModeCount,
+    const VkPresentModeKHR *pAvailablePresentModes)
 {
-    for (uint32_t i = 0; i < available_present_mode_count; i++) {
-        if (available_present_modes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
-            return available_present_modes[i];
+    for (uint32_t i = 0; i < availablePresentModeCount; i++) {
+        if (pAvailablePresentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
+            return pAvailablePresentModes[i];
         }
     }
 
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-static VkExtent2D choose_swapchain_extent(
+static VkExtent2D chooseSwapchainExtent(
     GLFWwindow *window, const VkSurfaceCapabilitiesKHR *capabilities)
 {
     if (capabilities->currentExtent.width != UINT32_MAX) {
@@ -44,133 +44,133 @@ static VkExtent2D choose_swapchain_extent(
         clamp(&width, capabilities->minImageExtent.width, capabilities->maxImageExtent.width);
         clamp(&height, capabilities->minImageExtent.height, capabilities->maxImageExtent.height);
 
-        const VkExtent2D actual_extent = {
+        const VkExtent2D actualExtent = {
             .width = (uint32_t)width,
             .height = (uint32_t)height,
         };
-        return actual_extent;
+        return actualExtent;
     }
 }
 
-struct swapchain_support_details query_swapchain_support(
+SwapchainSupportDetails querySwapchainSupport(
     VkPhysicalDevice device,
     VkSurfaceKHR surface)
 {
-    struct swapchain_support_details details;
+    SwapchainSupportDetails details;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
-    uint32_t format_count;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, NULL);
-    details.format_count = format_count;
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, NULL);
+    details.format_count = formatCount;
 
-    if (format_count != 0) {
-        details.formats = malloc(format_count * sizeof(*details.formats));
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, details.formats);
+    if (formatCount != 0) {
+        details.pFormats = malloc(formatCount * sizeof(*details.pFormats));
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.pFormats);
     }
 
-    uint32_t present_mode_count;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_mode_count, NULL);
-    details.present_mode_count = present_mode_count;
+    uint32_t presentModeCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, NULL);
+    details.presentModeCount = presentModeCount;
 
-    if (present_mode_count != 0) {
-        details.present_modes = malloc(present_mode_count * sizeof(*details.present_modes));
+    if (presentModeCount != 0) {
+        details.pPresentModes = malloc(presentModeCount * sizeof(*details.pPresentModes));
         vkGetPhysicalDeviceSurfacePresentModesKHR(
             device,
             surface,
-            &present_mode_count,
-            details.present_modes);
+            &presentModeCount,
+            details.pPresentModes);
     }
 
     return details;
 }
 
-void cleanup_swapchain_support(struct swapchain_support_details *details)
+void cleanupSwapchainSupport(SwapchainSupportDetails *pDetails)
 {
-        if (details->formats) {
-            free(details->formats);
+        if (pDetails->pFormats) {
+            free(pDetails->pFormats);
         }
-        if (details->present_modes) {
-            free(details->present_modes);
+        if (pDetails->pPresentModes) {
+            free(pDetails->pPresentModes);
         }
 }
 
-enum app_result create_swapchain(struct application *app)
+AppResult createSwapchain(Application *pApp)
 {
-    struct swapchain_support_details swapchain_support =
-        query_swapchain_support(app->physical_device, app->surface);
+    SwapchainSupportDetails swapchainSupport =
+        querySwapchainSupport(pApp->physicalDevice, pApp->surface);
 
-    const VkSurfaceFormatKHR surface_format = choose_swapchain_surface_format(
-        swapchain_support.format_count,
-        swapchain_support.formats);
+    const VkSurfaceFormatKHR surfaceFormat = chooseSwapchainSurfaceFormat(
+        swapchainSupport.format_count,
+        swapchainSupport.pFormats);
 
-    const VkPresentModeKHR present_mode = choose_swapchain_present_mode(
-        swapchain_support.present_mode_count,
-        swapchain_support.present_modes);
+    const VkPresentModeKHR presentMode = chooseSwapchainPresentMode(
+        swapchainSupport.presentModeCount,
+        swapchainSupport.pPresentModes);
 
-    const VkExtent2D extent = choose_swapchain_extent(
-        app->window, &swapchain_support.capabilities);
+    const VkExtent2D extent = chooseSwapchainExtent(
+        pApp->pWindow, &swapchainSupport.capabilities);
 
-    uint32_t image_count = swapchain_support.capabilities.minImageCount + 1;
-    if (swapchain_support.capabilities.maxImageCount > 0 &&
-        image_count > swapchain_support.capabilities.maxImageCount)
-        image_count = swapchain_support.capabilities.maxImageCount;
+    uint32_t image_count = swapchainSupport.capabilities.minImageCount + 1;
+    if (swapchainSupport.capabilities.maxImageCount > 0 &&
+        image_count > swapchainSupport.capabilities.maxImageCount)
+        image_count = swapchainSupport.capabilities.maxImageCount;
 
-    struct queue_family_indices indices;
-    find_queue_families(app->physical_device, app->surface, &indices);
-    uint32_t queue_family_indices[] = { *indices.graphics_family, *indices.present_family };
+    QueueFamilyIndices indices;
+    findQueueFamilies(pApp->physicalDevice, pApp->surface, &indices);
+    uint32_t queueFamilyIndices[] = { *indices.pGraphicsFamily, *indices.pPresentFamily };
 
     VkSwapchainCreateInfoKHR create_info = {
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        .surface = app->surface,
+        .surface = pApp->surface,
         .minImageCount = image_count,
-        .imageFormat = surface_format.format,
-        .imageColorSpace = surface_format.colorSpace,
+        .imageFormat = surfaceFormat.format,
+        .imageColorSpace = surfaceFormat.colorSpace,
         .imageExtent = extent,
         .imageArrayLayers = 1,
         .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-        .preTransform = swapchain_support.capabilities.currentTransform,
+        .preTransform = swapchainSupport.capabilities.currentTransform,
         .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        .presentMode = present_mode,
+        .presentMode = presentMode,
         .clipped = VK_TRUE,
         .oldSwapchain = VK_NULL_HANDLE,
     };
-    if (*indices.graphics_family != *indices.present_family) {
+    if (*indices.pGraphicsFamily != *indices.pPresentFamily) {
         create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         create_info.queueFamilyIndexCount = 2;
-        create_info.pQueueFamilyIndices = queue_family_indices;
+        create_info.pQueueFamilyIndices = queueFamilyIndices;
     } else {
         create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     }
 
-    if (vkCreateSwapchainKHR(app->device, &create_info, NULL, &app->swapchain) != VK_SUCCESS) {
+    if (vkCreateSwapchainKHR(pApp->device, &create_info, NULL, &pApp->swapchain) != VK_SUCCESS) {
         fputs("Error: failed to create swapchain!\n", stderr);
         return APP_ERROR;
     }
 
-    vkGetSwapchainImagesKHR(app->device, app->swapchain, &app->swapchain_image_count, NULL);
-    app->swapchain_images = malloc(app->swapchain_image_count * sizeof(VkImage));
+    vkGetSwapchainImagesKHR(pApp->device, pApp->swapchain, &pApp->swapchainImageCount, NULL);
+    pApp->pSwapchainImages = malloc(pApp->swapchainImageCount * sizeof(VkImage));
 
     vkGetSwapchainImagesKHR(
-        app->device, app->swapchain, &app->swapchain_image_count, app->swapchain_images);
+        pApp->device, pApp->swapchain, &pApp->swapchainImageCount, pApp->pSwapchainImages);
 
-    app->swapchain_image_format = surface_format.format;
-    app->swapchain_extent = extent;
+    pApp->swapchainImageFormat = surfaceFormat.format;
+    pApp->swapchainExtent = extent;
 
-    cleanup_swapchain_support(&swapchain_support);
-    cleanup_queue_families(&indices);
+    cleanupSwapchainSupport(&swapchainSupport);
+    cleanupQueueFamilies(&indices);
 
     return APP_SUCCESS;
 }
 
-enum app_result create_image_views(struct application *app)
+AppResult createImageViews(Application *app)
 {
-    app->swapchain_image_views = malloc(app->swapchain_image_count * sizeof(VkImageView));
-    for (uint32_t i = 0; i < app->swapchain_image_count; i++) {
-        const VkImageViewCreateInfo create_info = {
+    app->pSwapchainImageViews = malloc(app->swapchainImageCount * sizeof(VkImageView));
+    for (uint32_t i = 0; i < app->swapchainImageCount; i++) {
+        const VkImageViewCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .image = app->swapchain_images[i],
+            .image = app->pSwapchainImages[i],
             .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = app->swapchain_image_format,
+            .format = app->swapchainImageFormat,
             .components = {
                 .r = VK_COMPONENT_SWIZZLE_IDENTITY,
                 .g = VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -185,7 +185,7 @@ enum app_result create_image_views(struct application *app)
                 .layerCount = 1,
             },
         };
-        if (vkCreateImageView(app->device, &create_info, NULL, &app->swapchain_image_views[i]) !=
+        if (vkCreateImageView(app->device, &createInfo, NULL, &app->pSwapchainImageViews[i]) !=
             VK_SUCCESS)
         {
             fputs("Error: failed to create image views!\n", stderr);

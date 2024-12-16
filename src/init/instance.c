@@ -3,36 +3,40 @@
 #include <stdio.h>
 #include <string.h>
 
-static void get_required_extensions(uint32_t *req_ext_count, const char **req_extensions)
+static void getRequiredExtensions(
+    uint32_t *pRequiredExtensionCount,
+    const char **ppRequiredExtensions)
 {
-    uint32_t glfw_ext_count = 0;
-    const char **glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_ext_count);
+    uint32_t glfwExtensionCount = 0;
+    const char **ppGlfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    *req_ext_count = glfw_ext_count + ENABLE_VALIDATION_LAYERS;
+    *pRequiredExtensionCount = glfwExtensionCount + ENABLE_VALIDATION_LAYERS;
 
-    if (req_extensions) {
-        for (uint32_t i = 0; i < glfw_ext_count; i++) {
-            req_extensions[i] = glfw_extensions[i];
+    if (ppRequiredExtensions) {
+        for (uint32_t i = 0; i < glfwExtensionCount; i++) {
+            ppRequiredExtensions[i] = ppGlfwExtensions[i];
         }
 
         if (ENABLE_VALIDATION_LAYERS) {
-            req_extensions[glfw_ext_count] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+            ppRequiredExtensions[glfwExtensionCount] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
         }
     }
 }
 
-static bool required_extensions_available(
-    const char **req,
-    VkExtensionProperties *avb,
-    uint32_t reqc,
-    uint32_t avbc)
+static bool requiredExtensionsAvailable(
+    const char **ppRequiredExtensionNames,
+    VkExtensionProperties *pAvailableExtensions,
+    uint32_t requiredCount,
+    uint32_t availableCount)
 {
-    for (uint32_t i = 0; i < reqc; i++) {
+    for (uint32_t i = 0; i < requiredCount; i++) {
         bool included = false;
 
-        for (uint32_t j = 0; j < avbc; j++) {
-            const char *avb_str = avb[j].extensionName;
-            if (strncmp(req[i], avb_str, strlen(avb_str)) == 0) {
+        for (uint32_t j = 0; j < availableCount; j++) {
+            const char *pAvailableName = pAvailableExtensions[j].extensionName;
+            if (strncmp(ppRequiredExtensionNames[i], pAvailableName, strlen(pAvailableName))
+                == 0)
+            {
                 included = true;
             }
         }
@@ -45,14 +49,14 @@ static bool required_extensions_available(
     return true;
 }
 
-enum app_result create_instance(struct application *app)
+AppResult createInstance(Application *pApp)
 {
-    if (ENABLE_VALIDATION_LAYERS && !check_validation_layer_support()) {
+    if (ENABLE_VALIDATION_LAYERS && !checkValidationLayerSupport()) {
         fputs("Error: validation layers requested, but not available!\n", stderr);
         return APP_ERROR;
     }
 
-    const VkApplicationInfo app_info = {
+    const VkApplicationInfo appInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
         .pApplicationName = "Hello Triangle",
         .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
@@ -61,53 +65,53 @@ enum app_result create_instance(struct application *app)
         .apiVersion = VK_API_VERSION_1_0,
     };
 
-    uint32_t req_ext_count;
-    get_required_extensions(&req_ext_count, NULL);
+    uint32_t requiredExtensionCount;
+    getRequiredExtensions(&requiredExtensionCount, NULL);
 
-    const char *req_extensions[req_ext_count];
-    get_required_extensions(&req_ext_count, req_extensions);
+    const char *pRequiredExtensions[requiredExtensionCount];
+    getRequiredExtensions(&requiredExtensionCount, pRequiredExtensions);
 
-    uint32_t avb_ext_count = 0;
-    vkEnumerateInstanceExtensionProperties(NULL, &avb_ext_count, NULL);
+    uint32_t availableExtensionCount = 0;
+    vkEnumerateInstanceExtensionProperties(NULL, &availableExtensionCount, NULL);
 
-    VkExtensionProperties avb_extensions[avb_ext_count];
-    vkEnumerateInstanceExtensionProperties(NULL, &avb_ext_count, avb_extensions);
+    VkExtensionProperties pAvailableExtensions[availableExtensionCount];
+    vkEnumerateInstanceExtensionProperties(NULL, &availableExtensionCount, pAvailableExtensions);
 
     puts("Available instance extensions:");
-    for (uint32_t i = 0; i < avb_ext_count; i++) {
-        printf("\t%s\n", avb_extensions[i].extensionName);
+    for (uint32_t i = 0; i < availableExtensionCount; i++) {
+        printf("\t%s\n", pAvailableExtensions[i].extensionName);
     }
 
-    if (!required_extensions_available(
-        req_extensions,
-        avb_extensions,
-        req_ext_count,
-        avb_ext_count))
+    if (!requiredExtensionsAvailable(
+        pRequiredExtensions,
+        pAvailableExtensions,
+        requiredExtensionCount,
+        availableExtensionCount))
     {
         fputs("Error: required extensions not available!\n", stderr);
         return APP_ERROR;
     }
 
-    VkInstanceCreateInfo create_info = {
+    VkInstanceCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        .pApplicationInfo = &app_info,
-        .enabledExtensionCount = req_ext_count,
-        .ppEnabledExtensionNames = req_extensions,
+        .pApplicationInfo = &appInfo,
+        .enabledExtensionCount = requiredExtensionCount,
+        .ppEnabledExtensionNames = pRequiredExtensions,
     };
-    VkDebugUtilsMessengerCreateInfoEXT debug_create_info;
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
     if (ENABLE_VALIDATION_LAYERS) {
-        create_info.enabledLayerCount = VALIDATION_LAYER_COUNT;
-        create_info.ppEnabledLayerNames = VALIDATION_LAYERS;
+        createInfo.enabledLayerCount = VALIDATION_LAYER_COUNT;
+        createInfo.ppEnabledLayerNames = VALIDATION_LAYERS;
 
-        debug_create_info = configure_debug_messenger_create_info();
+        debugCreateInfo = configureDebugMessengerCreateInfo();
 
-        create_info.pNext = &debug_create_info;
+        createInfo.pNext = &debugCreateInfo;
     } else {
-        create_info.enabledLayerCount = 0;
+        createInfo.enabledLayerCount = 0;
     }
 
 
-    if (vkCreateInstance(&create_info, NULL, &app->instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&createInfo, NULL, &pApp->instance) != VK_SUCCESS) {
         fputs("Error: failed to create instance!\n", stderr);
         return APP_ERROR;
     }

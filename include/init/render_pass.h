@@ -3,6 +3,6 @@
 
 #include "application.h"
 
-enum app_result create_render_pass(struct application *app);
+AppResult createRenderPass(Application *pApp);
 
 #endif

@@ -12,71 +12,71 @@ const char *const DEVICE_EXTENSIONS[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
 
-static bool queue_family_indices_complete(const struct queue_family_indices *indices)
+static bool queueFamilyIndicesComplete(const QueueFamilyIndices *pIndices)
 {
-    return indices->graphics_family != NULL && indices->present_family != NULL;
+    return pIndices->pGraphicsFamily != NULL && pIndices->pPresentFamily != NULL;
 }
 
-void find_queue_families(
+void findQueueFamilies(
     VkPhysicalDevice device,
     VkSurfaceKHR surface,
-    struct queue_family_indices *indices)
+    QueueFamilyIndices *pIndices)
 {
-    uint32_t queue_family_count = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, NULL);
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, NULL);
 
-    VkQueueFamilyProperties queue_families[queue_family_count];
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families);
+    VkQueueFamilyProperties pQueueFamilies[queueFamilyCount];
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, pQueueFamilies);
 
-    for (uint32_t i = 0; i < queue_family_count; i++) {
-        if (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            indices->graphics_family = malloc(sizeof(uint32_t));
-            *indices->graphics_family = i;
+    for (uint32_t i = 0; i < queueFamilyCount; i++) {
+        if (pQueueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            pIndices->pGraphicsFamily = malloc(sizeof(uint32_t));
+            *pIndices->pGraphicsFamily = i;
         }
 
-        VkBool32 present_support = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &present_support);
-        if (present_support) {
-            indices->present_family = malloc(sizeof(uint32_t));
-            *indices->present_family = i;
+        VkBool32 presentSupport = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+        if (presentSupport) {
+            pIndices->pPresentFamily = malloc(sizeof(uint32_t));
+            *pIndices->pPresentFamily = i;
         }
 
-        if (queue_family_indices_complete(indices)) {
+        if (queueFamilyIndicesComplete(pIndices)) {
             break;
         }
     }
 }
 
-void cleanup_queue_families(struct queue_family_indices *indices)
+void cleanupQueueFamilies(QueueFamilyIndices *pIndices)
 {
-    free(indices->graphics_family);
-    free(indices->present_family);
+    free(pIndices->pGraphicsFamily);
+    free(pIndices->pPresentFamily);
 }
 
-static bool check_device_extension_support(VkPhysicalDevice device)
+static bool checkDeviceExtensionSupport(VkPhysicalDevice device)
 {
-    uint32_t ext_count;
-    vkEnumerateDeviceExtensionProperties(device, NULL, &ext_count, NULL);
+    uint32_t extensionCount;
+    vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, NULL);
 
-    VkExtensionProperties available_extensions[ext_count];
-    vkEnumerateDeviceExtensionProperties(device, NULL, &ext_count, available_extensions);
+    VkExtensionProperties pAvailableExtensions[extensionCount];
+    vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, pAvailableExtensions);
 
     puts("Available device extensions:");
-    for (int i = 0; i < ext_count; i++) {
-        printf("\t%s\n", available_extensions[i].extensionName);
+    for (int i = 0; i < extensionCount; i++) {
+        printf("\t%s\n", pAvailableExtensions[i].extensionName);
     }
 
     for (uint8_t i = 0; i < DEVICE_EXTENSION_COUNT; i++) {
-        bool extension_found = false;
+        bool extensionFound = false;
 
-        for (uint8_t j = 0; j < ext_count; j++) {
-            if (strcmp(DEVICE_EXTENSIONS[i], available_extensions[j].extensionName) == 0) {
-                extension_found = true;
+        for (uint8_t j = 0; j < extensionCount; j++) {
+            if (strcmp(DEVICE_EXTENSIONS[i], pAvailableExtensions[j].extensionName) == 0) {
+                extensionFound = true;
                 break;
             }
         }
 
-        if (!extension_found) {
+        if (!extensionFound) {
             return false;
         }
     }
@@ -84,117 +84,116 @@ static bool check_device_extension_support(VkPhysicalDevice device)
     return true;
 }
 
-static bool device_suitable(VkPhysicalDevice device, VkSurfaceKHR surface)
+static bool deviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
-    struct queue_family_indices indices;
-    find_queue_families(device, surface, &indices);
+    QueueFamilyIndices indices;
+    findQueueFamilies(device, surface, &indices);
 
-    bool indices_complete = queue_family_indices_complete(&indices);
-    bool extensions_supported = check_device_extension_support(device);
+    bool indicesComplete = queueFamilyIndicesComplete(&indices);
+    bool extensionsSupported = checkDeviceExtensionSupport(device);
 
-    bool swapchain_adequate = false;
-    if (extensions_supported) {
-        struct swapchain_support_details swapchain_support =
-            query_swapchain_support(device, surface);
+    bool swapchainAdequate = false;
+    if (extensionsSupported) {
+        SwapchainSupportDetails swapchainSupport = querySwapchainSupport(device, surface);
 
-        swapchain_adequate = swapchain_support.formats != NULL &&
-            swapchain_support.present_modes != NULL;
+        swapchainAdequate = swapchainSupport.pFormats != NULL &&
+            swapchainSupport.pPresentModes != NULL;
 
-        cleanup_swapchain_support(&swapchain_support);
+        cleanupSwapchainSupport(&swapchainSupport);
     }
 
-    cleanup_queue_families(&indices);
+    cleanupQueueFamilies(&indices);
 
-    return indices_complete & extensions_supported && swapchain_adequate;
+    return indicesComplete & extensionsSupported && swapchainAdequate;
 }
 
-enum app_result create_logical_device(struct application *app)
+AppResult createLogicalDevice(Application *pApp)
 {
-    struct queue_family_indices indices;
-    find_queue_families(app->physical_device, app->surface, &indices);
+    QueueFamilyIndices indices;
+    findQueueFamilies(pApp->physicalDevice, pApp->surface, &indices);
 
-    uint32_t queue_families[] = { *indices.graphics_family, *indices.present_family };
-    uint32_t *unique_queue_families = malloc(QUEUE_FAMILY_INDICES_COUNT * sizeof(uint32_t));
-    uint32_t unique_count = 0;
+    uint32_t queueFamilies[] = { *indices.pGraphicsFamily, *indices.pPresentFamily };
+    uint32_t *pUniqueQueueFamilies = malloc(QUEUE_FAMILY_INDICES_COUNT * sizeof(uint32_t));
+    uint32_t uniqueCount = 0;
 
     for (uint8_t i = 0; i < QUEUE_FAMILY_INDICES_COUNT; i++) {
         bool unique = true;
-        for (uint8_t j = 0; j < unique_count; j++) {
-            if (queue_families[i] == unique_queue_families[j]) {
+        for (uint8_t j = 0; j < uniqueCount; j++) {
+            if (queueFamilies[i] == pUniqueQueueFamilies[j]) {
                 unique = false;
                 break;
             }
         }
 
         if (unique) {
-            unique_queue_families[unique_count++] = queue_families[i];
+            pUniqueQueueFamilies[uniqueCount++] = queueFamilies[i];
         }
     }
 
-    VkDeviceQueueCreateInfo queue_create_infos[unique_count];
-    const float queue_priority = 1.0;
+    VkDeviceQueueCreateInfo pQueueCreateInfos[uniqueCount];
+    const float queuePriority = 1.0;
 
-    for (uint8_t i = 0; i < unique_count; i++) {
-        const VkDeviceQueueCreateInfo queue_create_info = {
+    for (uint8_t i = 0; i < uniqueCount; i++) {
+        const VkDeviceQueueCreateInfo queueCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-            .queueFamilyIndex = unique_queue_families[i],
+            .queueFamilyIndex = pUniqueQueueFamilies[i],
             .queueCount = 1,
-            .pQueuePriorities = &queue_priority,
+            .pQueuePriorities = &queuePriority,
         };
-        queue_create_infos[i] = queue_create_info;
+        pQueueCreateInfos[i] = queueCreateInfo;
     }
 
-    const VkPhysicalDeviceFeatures device_features = {};
+    const VkPhysicalDeviceFeatures deviceFeatures = {};
 
-    VkDeviceCreateInfo create_info = {
+    VkDeviceCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        .pQueueCreateInfos = queue_create_infos,
-        .queueCreateInfoCount = unique_count,
-        .pEnabledFeatures = &device_features,
+        .pQueueCreateInfos = pQueueCreateInfos,
+        .queueCreateInfoCount = uniqueCount,
+        .pEnabledFeatures = &deviceFeatures,
         .enabledExtensionCount = DEVICE_EXTENSION_COUNT,
         .ppEnabledExtensionNames = DEVICE_EXTENSIONS,
         .enabledLayerCount = 0,
     };
     if (ENABLE_VALIDATION_LAYERS) {
-        create_info.enabledLayerCount = VALIDATION_LAYER_COUNT;
-        create_info.ppEnabledLayerNames = VALIDATION_LAYERS;
+        createInfo.enabledLayerCount = VALIDATION_LAYER_COUNT;
+        createInfo.ppEnabledLayerNames = VALIDATION_LAYERS;
     }
 
-    if (vkCreateDevice(app->physical_device, &create_info, NULL, &app->device) != VK_SUCCESS) {
+    if (vkCreateDevice(pApp->physicalDevice, &createInfo, NULL, &pApp->device) != VK_SUCCESS) {
         fputs("Error: failed to create logical device!\n", stderr);
         return APP_ERROR;
     }
 
-    vkGetDeviceQueue(app->device, *indices.graphics_family, 0, &app->graphics_queue);
-    vkGetDeviceQueue(app->device, *indices.present_family, 0, &app->present_queue);
+    vkGetDeviceQueue(pApp->device, *indices.pGraphicsFamily, 0, &pApp->graphicsQueue);
+    vkGetDeviceQueue(pApp->device, *indices.pPresentFamily, 0, &pApp->presentQueue);
 
-    free(unique_queue_families);
-    cleanup_queue_families(&indices);
+    free(pUniqueQueueFamilies);
+    cleanupQueueFamilies(&indices);
     return APP_SUCCESS;
 }
 
-enum app_result pick_physical_device(struct application *app)
+AppResult pickPhysicalDevice(Application *pApp)
 {
 
-    uint32_t device_count = 0;
-    vkEnumeratePhysicalDevices(app->instance, &device_count, NULL);
+    uint32_t deviceCount = 0;
+    vkEnumeratePhysicalDevices(pApp->instance, &deviceCount, NULL);
 
-    if (device_count == 0) {
+    if (deviceCount == 0) {
         fputs("Error: failed to find GPUs with Vulkan support!\n", stderr);
         return APP_ERROR;
     }
 
-    VkPhysicalDevice devices[device_count];
-    vkEnumeratePhysicalDevices(app->instance, &device_count, devices);
+    VkPhysicalDevice pDevices[deviceCount];
+    vkEnumeratePhysicalDevices(pApp->instance, &deviceCount, pDevices);
 
-    for (uint32_t i = 0; i < device_count; i++) {
-        if (device_suitable(devices[i], app->surface)) {
-            app->physical_device = devices[i];
+    for (uint32_t i = 0; i < deviceCount; i++) {
+        if (deviceSuitable(pDevices[i], pApp->surface)) {
+            pApp->physicalDevice = pDevices[i];
             break;
         }
     }
 
-    if (!app->physical_device) {
+    if (!pApp->physicalDevice) {
         fputs("Error: failed to find a suitable GPU!\n", stderr);
         return APP_ERROR;
     }

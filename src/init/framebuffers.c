@@ -2,27 +2,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-enum app_result create_framebuffers(struct application *app)
+AppResult createFramebuffers(Application *pApp)
 {
-    app->swapchain_framebuffers = malloc(app->swapchain_image_count * sizeof(VkFramebuffer));
+    pApp->pSwapchainFramebuffers = malloc(pApp->swapchainImageCount * sizeof(VkFramebuffer));
 
-    for (uint32_t i = 0; i < app->swapchain_image_count; i++) {
+    for (uint32_t i = 0; i < pApp->swapchainImageCount; i++) {
         const VkImageView attachments[] = {
-            app->swapchain_image_views[i],
+            pApp->pSwapchainImageViews[i],
         };
 
-        const VkFramebufferCreateInfo framebuffer_info = {
+        const VkFramebufferCreateInfo framebufferInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .renderPass = app->render_pass,
+            .renderPass = pApp->renderPass,
             .attachmentCount = 1,
             .pAttachments = attachments,
-            .width = app->swapchain_extent.width,
-            .height = app->swapchain_extent.height,
+            .width = pApp->swapchainExtent.width,
+            .height = pApp->swapchainExtent.height,
             .layers = 1,
         };
 
         if (vkCreateFramebuffer(
-            app->device, &framebuffer_info, NULL, &app->swapchain_framebuffers[i])
+            pApp->device, &framebufferInfo, NULL, &pApp->pSwapchainFramebuffers[i])
             != VK_SUCCESS)
         {
             fputs("Error: failed to create framebuffer!\n", stderr);

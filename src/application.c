@@ -25,9 +25,9 @@ const bool ENABLE_VALIDATION_LAYERS = true;
 static const uint32_t WIDTH = 800;
 static const uint32_t HEIGHT = 600;
 
-static enum app_result create_surface(struct application *app)
+static AppResult createSurface(Application *pApp)
 {
-    if (glfwCreateWindowSurface(app->instance, app->window, NULL, &app->surface)
+    if (glfwCreateWindowSurface(pApp->instance, pApp->pWindow, NULL, &pApp->surface)
         != VK_SUCCESS)
     {
         fputs("Error: failed to create window surface!\n", stderr);
@@ -37,90 +37,90 @@ static enum app_result create_surface(struct application *app)
     return APP_SUCCESS;
 }
 
-static void framebuffer_resize_callback(GLFWwindow *window, int width, int height)
+static void framebufferResizeCallback(GLFWwindow *pWindow, int width, int height)
 {
-    struct application *app = (struct application *)glfwGetWindowUserPointer(window);
-    app->framebuffer_resized = true;
+    Application *pApp = (Application *)glfwGetWindowUserPointer(pWindow);
+    pApp->framebufferResized = true;
 }
 
-static enum app_result init_window(struct application *app)
+static AppResult initWindow(Application *pApp)
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    if (!(app->window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", NULL, NULL))) {
+    if (!(pApp->pWindow = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", NULL, NULL))) {
         fputs("Error: failed to create window!\n", stderr);
         return APP_ERROR;
     }
 
-    glfwSetWindowUserPointer(app->window, app);
-    glfwSetFramebufferSizeCallback(app->window, framebuffer_resize_callback);
+    glfwSetWindowUserPointer(pApp->pWindow, pApp);
+    glfwSetFramebufferSizeCallback(pApp->pWindow, framebufferResizeCallback);
     return APP_SUCCESS;
 }
 
-static enum app_result init_vulkan(struct application *app)
+static AppResult initVulkan(struct Application *pApp)
 {
-    enum app_result result = APP_SUCCESS;
-    if ((result = create_instance(app)) != APP_SUCCESS) {
+    enum AppResult result = APP_SUCCESS;
+    if ((result = createInstance(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create instance!\n", stderr);
         return result;
     }
 
-    if ((result = setup_debug_messenger(app)) != APP_SUCCESS) {
+    if ((result = setupDebugMessenger(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to setup debug messenger!\n", stderr);
         return result;
     }
 
-    if ((result = create_surface(app)) != APP_SUCCESS) {
+    if ((result = createSurface(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create window surface!\n", stderr);
         return result;
     }
 
-    if ((result = pick_physical_device(app)) != APP_SUCCESS) {
+    if ((result = pickPhysicalDevice(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to pick physical device!\n", stderr);
         return result;
     }
 
-    if ((result = create_logical_device(app)) != APP_SUCCESS) {
+    if ((result = createLogicalDevice(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create logical device!\n", stderr);
         return result;
     }
 
-    if ((result = create_swapchain(app)) != APP_SUCCESS) {
+    if ((result = createSwapchain(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create swapchain!\n", stderr);
         return result;
     }
 
-    if ((result = create_image_views(app)) != APP_SUCCESS) {
+    if ((result = createImageViews(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create image views!\n", stderr);
         return result;
     }
 
-    if ((result = create_render_pass(app)) != APP_SUCCESS) {
+    if ((result = createRenderPass(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create render pass!\n", stderr);
         return result;
     }
 
-    if ((result = create_graphics_pipeline(app)) != APP_SUCCESS) {
+    if ((result = createGraphicsPipeline(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create graphics pipeline!\n", stderr);
         return result;
     }
 
-    if ((result = create_framebuffers(app)) != APP_SUCCESS) {
+    if ((result = createFramebuffers(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create framebuffers!\n", stderr);
         return result;
     }
 
-    if ((result = create_command_pool(app)) != APP_SUCCESS) {
+    if ((result = createCommandPool(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create command pool!\n", stderr);
         return result;
     }
 
-    if ((result = create_command_buffers(app)) != APP_SUCCESS) {
+    if ((result = createCommandBuffers(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create command buffer!\n", stderr);
         return result;
     }
 
-    if ((result = create_sync_objects(app)) != APP_SUCCESS) {
+    if ((result = createSyncObjects(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create sync objects!\n", stderr);
         return result;
     }
@@ -128,72 +128,72 @@ static enum app_result init_vulkan(struct application *app)
     return APP_SUCCESS;
 }
 
-static enum app_result main_loop(struct application *app)
+static AppResult mainLoop(Application *pApp)
 {
-    uint32_t current_frame = 0;
-    app->framebuffer_resized = false;
-    while (!glfwWindowShouldClose(app->window)) {
+    uint32_t currentFrame = 0;
+    pApp->framebufferResized = false;
+    while (!glfwWindowShouldClose(pApp->pWindow)) {
         glfwPollEvents();
-        draw_frame(app, current_frame);
-        current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+        drawFrame(pApp, currentFrame);
+        currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    vkDeviceWaitIdle(app->device);
+    vkDeviceWaitIdle(pApp->device);
 
     return APP_SUCCESS;
 }
 
-static enum app_result cleanup(struct application *app)
+static AppResult cleanup(struct Application *pApp)
 {
-    cleanup_swapchain(app);
+    cleanupSwapchain(pApp);
 
-    vkDestroyPipeline(app->device, app->graphics_pipeline, NULL);
-    vkDestroyPipelineLayout(app->device, app->pipeline_layout, NULL);
-    vkDestroyRenderPass(app->device, app->render_pass, NULL);
+    vkDestroyPipeline(pApp->device, pApp->graphicsPipeline, NULL);
+    vkDestroyPipelineLayout(pApp->device, pApp->pipelineLayout, NULL);
+    vkDestroyRenderPass(pApp->device, pApp->renderPass, NULL);
 
     for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        vkDestroySemaphore(app->device, app->image_available_semaphores[i], NULL);
-        vkDestroySemaphore(app->device, app->render_finished_semaphores[i], NULL);
-        vkDestroyFence(app->device, app->in_flight_fences[i], NULL);
+        vkDestroySemaphore(pApp->device, pApp->imageAvailableSemaphores[i], NULL);
+        vkDestroySemaphore(pApp->device, pApp->renderFinishedSemaphores[i], NULL);
+        vkDestroyFence(pApp->device, pApp->inFlightFences[i], NULL);
     }
 
-    vkDestroyCommandPool(app->device, app->command_pool, NULL);
+    vkDestroyCommandPool(pApp->device, pApp->commandPool, NULL);
 
-    vkDestroyDevice(app->device, NULL);
+    vkDestroyDevice(pApp->device, NULL);
 
     if (ENABLE_VALIDATION_LAYERS) {
-        DestroyDebugUtilsMessengerEXT(app->instance, app->debug_messenger, NULL);
+        destroyDebugUtilsMessengerEXT(pApp->instance, pApp->debugMessenger, NULL);
     }
 
-    vkDestroySurfaceKHR(app->instance, app->surface, NULL);
-    vkDestroyInstance(app->instance, NULL);
+    vkDestroySurfaceKHR(pApp->instance, pApp->surface, NULL);
+    vkDestroyInstance(pApp->instance, NULL);
 
-    glfwDestroyWindow(app->window);
+    glfwDestroyWindow(pApp->pWindow);
 
     glfwTerminate();
 
     return APP_SUCCESS;
 }
 
-enum app_result app_run(struct application *app)
+AppResult appRun(Application *pApp)
 {
     int result;
-    if ((result = init_window(app)) != APP_SUCCESS) {
+    if ((result = initWindow(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to initialize window!\n", stderr);
         goto cleanup;
     }
 
-    if ((result = init_vulkan(app)) != APP_SUCCESS) {
+    if ((result = initVulkan(pApp)) != APP_SUCCESS) {
         fputs("Error failed to initialize Vulkan!\n", stderr);
         goto cleanup;
     }
 
-    if ((result = main_loop(app)) != APP_SUCCESS) {
+    if ((result = mainLoop(pApp)) != APP_SUCCESS) {
         fputs("Error: main loop failed!\n", stderr);
         goto cleanup;
     }
 
 cleanup:
-    cleanup(app);
+    cleanup(pApp);
     return result;
 }

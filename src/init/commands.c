@@ -3,18 +3,18 @@
 #include "init/device.h"
 #include <stdio.h>
 
-enum app_result create_command_pool(struct application *app)
+AppResult createCommandPool(Application *pApp)
 {
-    struct queue_family_indices queue_family_indices;
-    find_queue_families(app->physical_device, app->surface, &queue_family_indices);
+    QueueFamilyIndices queueFamilyIndices;
+    findQueueFamilies(pApp->physicalDevice, pApp->surface, &queueFamilyIndices);
 
-    const VkCommandPoolCreateInfo pool_info = {
+    const VkCommandPoolCreateInfo poolInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-        .queueFamilyIndex = *queue_family_indices.graphics_family,
+        .queueFamilyIndex = *queueFamilyIndices.pGraphicsFamily,
     };
 
-    if (vkCreateCommandPool(app->device, &pool_info, NULL, &app->command_pool)
+    if (vkCreateCommandPool(pApp->device, &poolInfo, NULL, &pApp->commandPool)
         != VK_SUCCESS)
     {
         fputs("Error: failed to create command pool!\n", stderr);
@@ -23,16 +23,16 @@ enum app_result create_command_pool(struct application *app)
     return APP_SUCCESS;
 }
 
-enum app_result create_command_buffers(struct application *app)
+AppResult createCommandBuffers(Application *pApp)
 {
-    const VkCommandBufferAllocateInfo alloc_info = {
+    const VkCommandBufferAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = app->command_pool,
+        .commandPool = pApp->commandPool,
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = MAX_FRAMES_IN_FLIGHT,
     };
 
-    if (vkAllocateCommandBuffers(app->device, &alloc_info, app->command_buffers)
+    if (vkAllocateCommandBuffers(pApp->device, &allocInfo, pApp->commandBuffers)
         != VK_SUCCESS)
     {
         fputs("Error: failure to allocate command buffers!\n", stderr);
@@ -42,61 +42,61 @@ enum app_result create_command_buffers(struct application *app)
     return APP_SUCCESS;
 }
 
-enum app_result record_command_buffer(
-    struct application *app,
-    VkCommandBuffer command_buffer,
-    uint32_t image_index)
+AppResult recordCommandBuffer(
+    Application *pApp,
+    VkCommandBuffer commandBuffer,
+    uint32_t imageIndex)
 {
-    const VkCommandBufferBeginInfo begin_info = {
+    const VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = 0,
         .pInheritanceInfo = NULL, // optional
     };
 
-    if (vkBeginCommandBuffer(command_buffer, &begin_info) != VK_SUCCESS) {
+    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
         fputs("Error: failed to begin recording command buffer!\n", stderr);
         return APP_ERROR;
     }
 
-    const VkClearValue clear_color = {0.0f, 0.0f, 0.0f, 0.0f};
+    const VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
 
-    const VkRenderPassBeginInfo render_pass_info = {
+    const VkRenderPassBeginInfo renderPassInfo = {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        .renderPass = app->render_pass,
-        .framebuffer = app->swapchain_framebuffers[image_index],
+        .renderPass = pApp->renderPass,
+        .framebuffer = pApp->pSwapchainFramebuffers[imageIndex],
         .renderArea = {
             .offset = { .x = 0, .y = 0 },
-            .extent = app->swapchain_extent,
+            .extent = pApp->swapchainExtent,
         },
         .clearValueCount = 1,
-        .pClearValues = &clear_color,
+        .pClearValues = &clearColor,
     };
 
-    vkCmdBeginRenderPass(command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(
-        command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, app->graphics_pipeline);
+        commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pApp->graphicsPipeline);
 
     const VkViewport viewport = {
         .x = 0.0f,
         .y = 0.0f,
-        .width = (float)app->swapchain_extent.width,
-        .height = (float)app->swapchain_extent.height,
+        .width = (float)pApp->swapchainExtent.width,
+        .height = (float)pApp->swapchainExtent.height,
         .minDepth = 0.0f,
         .maxDepth = 1.0f,
     };
-    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
     const VkRect2D scissor = {
         .offset = { .x = 0, .y = 0 },
-        .extent = app->swapchain_extent,
+        .extent = pApp->swapchainExtent,
     };
-    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    vkCmdDraw(command_buffer, 3, 1, 0, 0);
+    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
-    vkCmdEndRenderPass(command_buffer);
+    vkCmdEndRenderPass(commandBuffer);
 
-    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
+    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
         fputs("Error: failed to record command buffer!\n", stderr);
         return APP_ERROR;
     }

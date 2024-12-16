@@ -3,8 +3,8 @@
 
 int main()
 {
-    struct application *app = malloc(sizeof(*app));
-    app_run(app);
+    Application *app = malloc(sizeof(*app));
+    appRun(app);
     free(app);
     return EXIT_SUCCESS;
 }

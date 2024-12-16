@@ -6,54 +6,54 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-enum app_result cleanup_swapchain(struct application *app)
+AppResult cleanupSwapchain(Application *pApp)
 {
-    if (app->swapchain_framebuffers) {
-        for (uint32_t i = 0; i < app->swapchain_image_count; i++) {
-            vkDestroyFramebuffer(app->device, app->swapchain_framebuffers[i], NULL);
+    if (pApp->pSwapchainFramebuffers) {
+        for (uint32_t i = 0; i < pApp->swapchainImageCount; i++) {
+            vkDestroyFramebuffer(pApp->device, pApp->pSwapchainFramebuffers[i], NULL);
         }
-        free(app->swapchain_framebuffers);
+        free(pApp->pSwapchainFramebuffers);
     }
 
-    for (uint32_t i = 0; i < app->swapchain_image_count; i++) {
-        vkDestroyImageView(app->device, app->swapchain_image_views[i], NULL);
+    for (uint32_t i = 0; i < pApp->swapchainImageCount; i++) {
+        vkDestroyImageView(pApp->device, pApp->pSwapchainImageViews[i], NULL);
     }
 
-    vkDestroySwapchainKHR(app->device, app->swapchain, NULL);
+    vkDestroySwapchainKHR(pApp->device, pApp->swapchain, NULL);
 
-    free(app->swapchain_image_views);
-    free(app->swapchain_images);
+    free(pApp->pSwapchainImageViews);
+    free(pApp->pSwapchainImages);
 
     return APP_SUCCESS;
 }
 
-static enum app_result recreate_swapchain(struct application *app)
+static AppResult recreateSwapchain(Application *pApp)
 {
     int32_t width = 0, height = 0;
-    glfwGetFramebufferSize(app->window, &width, &height);
+    glfwGetFramebufferSize(pApp->pWindow, &width, &height);
     while (width == 0 || height == 0) {
-        glfwGetFramebufferSize(app->window, &width, &height);
+        glfwGetFramebufferSize(pApp->pWindow, &width, &height);
         glfwWaitEvents();
     }
 
-    vkDeviceWaitIdle(app->device);
-    enum app_result result = APP_SUCCESS;
-    if ((result = cleanup_swapchain(app)) != APP_SUCCESS) {
+    vkDeviceWaitIdle(pApp->device);
+    AppResult result = APP_SUCCESS;
+    if ((result = cleanupSwapchain(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to cleanup swapchain!\n", stderr);
         return result;
     }
 
-    if ((result = create_swapchain(app)) != APP_SUCCESS) {
+    if ((result = createSwapchain(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create swapchain!\n", stderr);
         return result;
     }
 
-    if ((result = create_image_views(app)) != APP_SUCCESS) {
+    if ((result = createImageViews(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create image views!\n", stderr);
         return result;
     }
 
-    if ((result = create_framebuffers(app)) != APP_SUCCESS) {
+    if ((result = createFramebuffers(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create framebuffers!\n", stderr);
         return result;
     }
@@ -61,77 +61,77 @@ static enum app_result recreate_swapchain(struct application *app)
     return APP_SUCCESS;
 }
 
-enum app_result draw_frame(struct application *app, uint32_t current_frame)
+AppResult drawFrame(Application *pApp, uint32_t currentFrame)
 {
-    vkWaitForFences(app->device, 1, &app->in_flight_fences[current_frame], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(pApp->device, 1, &pApp->inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
-    uint32_t image_index;
+    uint32_t imageIndex;
     VkResult result = vkAcquireNextImageKHR(
-        app->device,
-        app->swapchain,
+        pApp->device,
+        pApp->swapchain,
         UINT64_MAX,
-        app->image_available_semaphores[current_frame],
+        pApp->imageAvailableSemaphores[currentFrame],
         VK_NULL_HANDLE,
-        &image_index);
+        &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        recreate_swapchain(app);
+        recreateSwapchain(pApp);
         return APP_SUCCESS;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         fputs("Error: failed to acquire swap chain image!", stderr);
     }
 
-    vkResetFences(app->device, 1, &app->in_flight_fences[current_frame]);
+    vkResetFences(pApp->device, 1, &pApp->inFlightFences[currentFrame]);
 
-    vkResetCommandBuffer(app->command_buffers[current_frame], 0);
-    record_command_buffer(app, app->command_buffers[current_frame], image_index);
+    vkResetCommandBuffer(pApp->commandBuffers[currentFrame], 0);
+    recordCommandBuffer(pApp, pApp->commandBuffers[currentFrame], imageIndex);
 
-    const VkSemaphore wait_semaphores[] = {
-        app->image_available_semaphores[current_frame],
+    const VkSemaphore waitSemaphores[] = {
+        pApp->imageAvailableSemaphores[currentFrame],
     };
-    const VkPipelineStageFlags wait_stages[] = {
+    const VkPipelineStageFlags waitStages[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
     };
-    const VkSemaphore signal_semaphores[] = {
-        app->render_finished_semaphores[current_frame],
+    const VkSemaphore signalSemaphores[] = {
+        pApp->renderFinishedSemaphores[currentFrame],
     };
 
-    const VkSubmitInfo submit_info = {
+    const VkSubmitInfo submitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = wait_semaphores, // corresponds with below
-        .pWaitDstStageMask = wait_stages,   // corresponds with above
+        .pWaitSemaphores = waitSemaphores, // corresponds with below
+        .pWaitDstStageMask = waitStages,   // corresponds with above
         .commandBufferCount = 1,
-        .pCommandBuffers = &app->command_buffers[current_frame],
+        .pCommandBuffers = &pApp->commandBuffers[currentFrame],
         .signalSemaphoreCount = 1,
-        .pSignalSemaphores = signal_semaphores,
+        .pSignalSemaphores = signalSemaphores,
     };
 
-    if (vkQueueSubmit(app->graphics_queue, 1, &submit_info, app->in_flight_fences[current_frame])
+    if (vkQueueSubmit(pApp->graphicsQueue, 1, &submitInfo, pApp->inFlightFences[currentFrame])
         != VK_SUCCESS)
     {
         fputs("Error: failed to submit draw command buffer!\n", stderr);
         return APP_ERROR;
     }
 
-    const VkSwapchainKHR swapchains[] = { app->swapchain };
+    const VkSwapchainKHR swapchains[] = { pApp->swapchain };
 
-    const VkPresentInfoKHR present_info = {
+    const VkPresentInfoKHR presentInfo = {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = signal_semaphores,
+        .pWaitSemaphores = signalSemaphores,
         .swapchainCount = 1,
         .pSwapchains = swapchains,
-        .pImageIndices = &image_index,
+        .pImageIndices = &imageIndex,
         .pResults = NULL,
     };
 
-    result = vkQueuePresentKHR(app->present_queue, &present_info);
+    result = vkQueuePresentKHR(pApp->presentQueue, &presentInfo);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
-        app->framebuffer_resized) {
-        app->framebuffer_resized = false;
-        recreate_swapchain(app);
+        pApp->framebufferResized) {
+        pApp->framebufferResized = false;
+        recreateSwapchain(pApp);
     } else if (result != VK_SUCCESS) {
         fputs("Error: failed to present swapchain image!\n", stderr);
     }

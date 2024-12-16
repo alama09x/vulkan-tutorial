@@ -3,6 +3,6 @@
 
 #include "application.h"
 
-enum app_result create_graphics_pipeline(struct application *app);
+AppResult createGraphicsPipeline(Application *pApp);
 
 #endif

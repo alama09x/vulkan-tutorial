@@ -3,6 +3,6 @@
 
 #include "application.h"
 
-enum app_result create_sync_objects(struct application *app);
+AppResult createSyncObjects(Application *pApp);
 
 #endif

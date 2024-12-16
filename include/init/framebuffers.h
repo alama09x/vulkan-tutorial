@@ -3,6 +3,6 @@
 
 #include "application.h"
 
-enum app_result create_framebuffers(struct application *app);
+AppResult createFramebuffers(Application *pApp);
 
 #endif

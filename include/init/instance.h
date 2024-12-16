@@ -3,6 +3,6 @@
 
 #include "application.h"
 
-enum app_result create_instance(struct application *app);
+AppResult createInstance(Application *pApp);
 
 #endif

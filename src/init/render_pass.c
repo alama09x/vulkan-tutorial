@@ -1,10 +1,10 @@
 #include "init/render_pass.h"
 #include <stdio.h>
 
-enum app_result create_render_pass(struct application *app)
+AppResult createRenderPass(Application *pApp)
 {
-    const VkAttachmentDescription color_attachment = {
-        .format = app->swapchain_image_format,
+    const VkAttachmentDescription colorAttachment = {
+        .format = pApp->swapchainImageFormat,
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -14,7 +14,7 @@ enum app_result create_render_pass(struct application *app)
         .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
     };
 
-    const VkAttachmentReference color_attachment_ref = {
+    const VkAttachmentReference colorAttachmentRef = {
         .attachment = 0,
         .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     };
@@ -22,7 +22,7 @@ enum app_result create_render_pass(struct application *app)
     const VkSubpassDescription subpass = {
         .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
         .colorAttachmentCount = 1,
-        .pColorAttachments = &color_attachment_ref,
+        .pColorAttachments = &colorAttachmentRef,
     };
 
     const VkSubpassDependency dependency = {
@@ -34,17 +34,17 @@ enum app_result create_render_pass(struct application *app)
         .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
     };
 
-    const VkRenderPassCreateInfo render_pass_info = {
+    const VkRenderPassCreateInfo renderPassInfo = {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         .attachmentCount = 1,
-        .pAttachments = &color_attachment,
+        .pAttachments = &colorAttachment,
         .subpassCount = 1,
         .pSubpasses = &subpass,
         .dependencyCount = 1,
         .pDependencies = &dependency,
     };
 
-    if (vkCreateRenderPass(app->device, &render_pass_info, NULL, &app->render_pass)
+    if (vkCreateRenderPass(pApp->device, &renderPassInfo, NULL, &pApp->renderPass)
         != VK_SUCCESS)
     {
         fputs("Error: failed to create render pass!\n", stderr);

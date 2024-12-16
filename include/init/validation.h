@@ -6,12 +6,12 @@
 extern const char *const VALIDATION_LAYERS[];
 extern const uint8_t VALIDATION_LAYER_COUNT;
 
-enum app_result setup_debug_messenger(struct application *app);
+AppResult setupDebugMessenger(Application *pApp);
 
-bool check_validation_layer_support();
-VkDebugUtilsMessengerCreateInfoEXT configure_debug_messenger_create_info();
+bool checkValidationLayerSupport();
+VkDebugUtilsMessengerCreateInfoEXT configureDebugMessengerCreateInfo();
 
-void DestroyDebugUtilsMessengerEXT(
+void destroyDebugUtilsMessengerEXT(
     VkInstance instance,
     VkDebugUtilsMessengerEXT debugMessenger,
     const VkAllocationCallbacks *pAllocator);

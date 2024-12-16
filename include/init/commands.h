@@ -3,12 +3,11 @@
 
 #include "application.h"
 
-
-enum app_result create_command_pool(struct application *app);
-enum app_result create_command_buffers(struct application *app);
-enum app_result record_command_buffer(
-    struct application *app,
-    VkCommandBuffer command_buffer,
-    uint32_t image_index);
+AppResult createCommandPool(Application *pApp);
+AppResult createCommandBuffers(Application *pApp);
+AppResult recordCommandBuffer(
+    Application *pApp,
+    VkCommandBuffer commandBuffer,
+    uint32_t imageIndex);
 
 #endif

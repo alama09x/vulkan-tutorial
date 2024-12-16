@@ -3,8 +3,7 @@
 
 #include "application.h"
 
-
-enum app_result cleanup_swapchain(struct application *app);
-enum app_result draw_frame(struct application *app, uint32_t current_frame);
+AppResult cleanupSwapchain(Application *pApp);
+AppResult drawFrame(Application *pApp, uint32_t currentFrame);
 
 #endif
