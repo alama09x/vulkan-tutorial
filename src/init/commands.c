@@ -1,6 +1,7 @@
 #include "init/commands.h"
 #include "application.h"
 #include "init/device.h"
+#include "init/vertex.h"
 #include <stdio.h>
 
 AppResult createCommandPool(Application *pApp)
@@ -76,6 +77,10 @@ AppResult recordCommandBuffer(
     vkCmdBindPipeline(
         commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pApp->graphicsPipeline);
 
+    const VkBuffer vertexBuffers[] = { pApp->vertexBuffer };
+    const VkDeviceSize offsets[] = { 0 };
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
     const VkViewport viewport = {
         .x = 0.0f,
         .y = 0.0f,
@@ -92,7 +97,7 @@ AppResult recordCommandBuffer(
     };
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+    vkCmdDraw(commandBuffer, VERTEX_COUNT, 1, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 

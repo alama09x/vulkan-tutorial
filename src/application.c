@@ -1,7 +1,7 @@
 #include "application.h"
 
-#include "init/device.h"
 #include "init/instance.h"
+#include "init/device.h"
 #include "init/validation.h"
 #include "init/swapchain.h"
 #include "init/render_pass.h"
@@ -10,6 +10,7 @@
 #include "init/commands.h"
 #include "init/sync_objects.h"
 #include "init/draw_frame.h"
+#include "init/buffers.h"
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -115,6 +116,11 @@ static AppResult initVulkan(struct Application *pApp)
         return result;
     }
 
+    if ((result = createVertexBuffer(pApp)) != APP_SUCCESS) {
+        fputs("Error: failed to create vertex buffer!\n", stderr);
+        return result;
+    }
+
     if ((result = createCommandBuffers(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create command buffer!\n", stderr);
         return result;
@@ -146,6 +152,9 @@ static AppResult mainLoop(Application *pApp)
 static AppResult cleanup(struct Application *pApp)
 {
     cleanupSwapchain(pApp);
+
+    vkDestroyBuffer(pApp->device, pApp->vertexBuffer, NULL);
+    vkFreeMemory(pApp->device, pApp->vertexBufferMemory, NULL);
 
     vkDestroyPipeline(pApp->device, pApp->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(pApp->device, pApp->pipelineLayout, NULL);

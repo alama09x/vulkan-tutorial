@@ -34,6 +34,8 @@ typedef struct Application {
     VkSemaphore renderFinishedSemaphores[MAX_FRAMES_IN_FLIGHT];
     VkFence inFlightFences[MAX_FRAMES_IN_FLIGHT];
     bool framebufferResized;
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
 } Application;
 
 typedef enum AppResult {
