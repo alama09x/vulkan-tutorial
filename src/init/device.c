@@ -7,9 +7,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __APPLE__
+const uint8_t DEVICE_EXTENSION_COUNT = 2;
+#else
 const uint8_t DEVICE_EXTENSION_COUNT = 1;
+#endif
+
 const char *const DEVICE_EXTENSIONS[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#ifdef __APPLE__
+    "VK_KHR_portability_subset",
+#endif
 };
 
 static bool queueFamilyIndicesComplete(const QueueFamilyIndices *pIndices)

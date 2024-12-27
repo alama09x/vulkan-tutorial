@@ -11,6 +11,9 @@ static void getRequiredExtensions(
     const char **ppGlfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
     *pRequiredExtensionCount = glfwExtensionCount + ENABLE_VALIDATION_LAYERS;
+#ifdef __APPLE__
+    (*pRequiredExtensionCount) += 2;
+#endif
 
     if (ppRequiredExtensions) {
         for (uint32_t i = 0; i < glfwExtensionCount; i++) {
@@ -20,6 +23,13 @@ static void getRequiredExtensions(
         if (ENABLE_VALIDATION_LAYERS) {
             ppRequiredExtensions[glfwExtensionCount] = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
         }
+
+#ifdef __APPLE__
+        ppRequiredExtensions[glfwExtensionCount + 1] =
+            VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME;
+        ppRequiredExtensions[glfwExtensionCount + 2] =
+            VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME;
+#endif
     }
 }
 
@@ -94,6 +104,9 @@ AppResult createInstance(Application *pApp)
 
     VkInstanceCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+#ifdef __APPLE__
+        .flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR,
+#endif
         .pApplicationInfo = &appInfo,
         .enabledExtensionCount = requiredExtensionCount,
         .ppEnabledExtensionNames = pRequiredExtensions,
