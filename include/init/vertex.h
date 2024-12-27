@@ -11,8 +11,11 @@ typedef struct Vertex {
     vec3 color;
 } Vertex;
 
-#define VERTEX_COUNT 3
-extern const Vertex VERTICES[VERTEX_COUNT];
+extern const uint32_t VERTEX_COUNT;
+extern const Vertex VERTICES[];
+
+extern const uint32_t INDEX_COUNT;
+extern const uint16_t INDICES[];
 
 VkVertexInputBindingDescription vertexGetBindingDescription();
 void vertexGetAttributeDescriptions(

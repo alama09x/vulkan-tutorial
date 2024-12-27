@@ -4,5 +4,6 @@
 #include "application.h"
 
 AppResult createVertexBuffer(Application *pApp);
+AppResult createIndexBuffer(Application *pApp);
 
 #endif

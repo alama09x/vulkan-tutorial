@@ -4,7 +4,7 @@
 #include "init/vertex.h"
 #include <stdio.h>
 
-AppResult createCommandPool(Application *pApp)
+AppResult createCommandPool(Application *pApp, VkCommandPool *pCommandPool, uint32_t queueFamilyIndex)
 {
     QueueFamilyIndices queueFamilyIndices;
     findQueueFamilies(pApp->physicalDevice, pApp->surface, &queueFamilyIndices);
@@ -12,10 +12,10 @@ AppResult createCommandPool(Application *pApp)
     const VkCommandPoolCreateInfo poolInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-        .queueFamilyIndex = *queueFamilyIndices.pGraphicsFamily,
+        .queueFamilyIndex = queueFamilyIndex,
     };
 
-    if (vkCreateCommandPool(pApp->device, &poolInfo, NULL, &pApp->commandPool)
+    if (vkCreateCommandPool(pApp->device, &poolInfo, NULL, pCommandPool)
         != VK_SUCCESS)
     {
         fputs("Error: failed to create command pool!\n", stderr);
@@ -28,7 +28,7 @@ AppResult createCommandBuffers(Application *pApp)
 {
     const VkCommandBufferAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = pApp->commandPool,
+        .commandPool = pApp->graphicsCommandPool,
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = MAX_FRAMES_IN_FLIGHT,
     };
@@ -80,6 +80,7 @@ AppResult recordCommandBuffer(
     const VkBuffer vertexBuffers[] = { pApp->vertexBuffer };
     const VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    vkCmdBindIndexBuffer(commandBuffer, pApp->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
     const VkViewport viewport = {
         .x = 0.0f,
@@ -97,7 +98,7 @@ AppResult recordCommandBuffer(
     };
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    vkCmdDraw(commandBuffer, VERTEX_COUNT, 1, 0, 0);
+    vkCmdDrawIndexed(commandBuffer, INDEX_COUNT, 1, 0, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 

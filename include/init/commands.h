@@ -3,7 +3,7 @@
 
 #include "application.h"
 
-AppResult createCommandPool(Application *pApp);
+AppResult createCommandPool(Application *pApp, VkCommandPool *pCommandPool, uint32_t queueFamilyIndex);
 AppResult createCommandBuffers(Application *pApp);
 AppResult recordCommandBuffer(
     Application *pApp,

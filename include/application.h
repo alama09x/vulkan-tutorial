@@ -17,6 +17,7 @@ typedef struct Application {
     VkPhysicalDevice physicalDevice;
     VkDevice device;
     VkQueue graphicsQueue;
+    VkQueue transferQueue;
     VkQueue presentQueue;
     VkSwapchainKHR swapchain;
     uint32_t swapchainImageCount;
@@ -28,7 +29,8 @@ typedef struct Application {
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
     VkFramebuffer *pSwapchainFramebuffers;
-    VkCommandPool commandPool;
+    VkCommandPool graphicsCommandPool;
+    VkCommandPool transferCommandPool;
     VkCommandBuffer commandBuffers[MAX_FRAMES_IN_FLIGHT];
     VkSemaphore imageAvailableSemaphores[MAX_FRAMES_IN_FLIGHT];
     VkSemaphore renderFinishedSemaphores[MAX_FRAMES_IN_FLIGHT];
@@ -36,6 +38,8 @@ typedef struct Application {
     bool framebufferResized;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
+    VkBuffer indexBuffer;
+    VkDeviceMemory indexBufferMemory;
 } Application;
 
 typedef enum AppResult {

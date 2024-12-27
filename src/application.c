@@ -58,7 +58,7 @@ static AppResult initWindow(Application *pApp)
     return APP_SUCCESS;
 }
 
-static AppResult initVulkan(struct Application *pApp)
+static AppResult initVulkan(Application *pApp)
 {
     enum AppResult result = APP_SUCCESS;
     if ((result = createInstance(pApp)) != APP_SUCCESS) {
@@ -111,13 +111,35 @@ static AppResult initVulkan(struct Application *pApp)
         return result;
     }
 
-    if ((result = createCommandPool(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to create command pool!\n", stderr);
+    QueueFamilyIndices indices;
+    findQueueFamilies(pApp->physicalDevice, pApp->surface, &indices);
+
+    if ((result = createCommandPool(
+        pApp, &pApp->graphicsCommandPool,
+        *indices.pGraphicsFamily)
+    ) != APP_SUCCESS) {
+        fputs("Error: failed to create graphics command pool!\n", stderr);
         return result;
     }
 
+    if ((result = createCommandPool(
+        pApp,
+        &pApp->transferCommandPool,
+        *indices.pTransferFamily)
+    ) != APP_SUCCESS) {
+        fputs("Error: failed to create transfer command pool!\n", stderr);
+        return result;
+    }
+
+    cleanupQueueFamilies(&indices);
+
     if ((result = createVertexBuffer(pApp)) != APP_SUCCESS) {
         fputs("Error: failed to create vertex buffer!\n", stderr);
+        return result;
+    }
+
+    if ((result = createIndexBuffer(pApp)) != APP_SUCCESS) {
+        fputs("Error: failed to create index buffer!\n", stderr);
         return result;
     }
 
@@ -153,6 +175,9 @@ static AppResult cleanup(struct Application *pApp)
 {
     cleanupSwapchain(pApp);
 
+    vkDestroyBuffer(pApp->device, pApp->indexBuffer, NULL);
+    vkFreeMemory(pApp->device, pApp->indexBufferMemory, NULL);
+
     vkDestroyBuffer(pApp->device, pApp->vertexBuffer, NULL);
     vkFreeMemory(pApp->device, pApp->vertexBufferMemory, NULL);
 
@@ -166,7 +191,8 @@ static AppResult cleanup(struct Application *pApp)
         vkDestroyFence(pApp->device, pApp->inFlightFences[i], NULL);
     }
 
-    vkDestroyCommandPool(pApp->device, pApp->commandPool, NULL);
+    vkDestroyCommandPool(pApp->device, pApp->transferCommandPool, NULL);
+    vkDestroyCommandPool(pApp->device, pApp->graphicsCommandPool, NULL);
 
     vkDestroyDevice(pApp->device, NULL);
 

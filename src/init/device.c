@@ -22,7 +22,9 @@ const char *const DEVICE_EXTENSIONS[] = {
 
 static bool queueFamilyIndicesComplete(const QueueFamilyIndices *pIndices)
 {
-    return pIndices->pGraphicsFamily != NULL && pIndices->pPresentFamily != NULL;
+    return pIndices->pGraphicsFamily != NULL &&
+        pIndices->pTransferFamily != NULL &&
+        pIndices->pPresentFamily != NULL;
 }
 
 void findQueueFamilies(
@@ -41,6 +43,10 @@ void findQueueFamilies(
             pIndices->pGraphicsFamily = malloc(sizeof(uint32_t));
             *pIndices->pGraphicsFamily = i;
         }
+        if (pQueueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) {
+            pIndices->pTransferFamily = malloc(sizeof(uint32_t));
+            *pIndices->pTransferFamily = i;
+        }
 
         VkBool32 presentSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
@@ -52,6 +58,10 @@ void findQueueFamilies(
         if (queueFamilyIndicesComplete(pIndices)) {
             break;
         }
+    }
+
+    if (!pIndices->pTransferFamily && pIndices->pGraphicsFamily) {
+        pIndices->pTransferFamily = pIndices->pGraphicsFamily;
     }
 }
 
@@ -120,7 +130,7 @@ AppResult createLogicalDevice(Application *pApp)
     QueueFamilyIndices indices;
     findQueueFamilies(pApp->physicalDevice, pApp->surface, &indices);
 
-    uint32_t queueFamilies[] = { *indices.pGraphicsFamily, *indices.pPresentFamily };
+    uint32_t queueFamilies[] = { *indices.pGraphicsFamily, *indices.pPresentFamily, *indices.pTransferFamily };
     uint32_t *pUniqueQueueFamilies = malloc(QUEUE_FAMILY_INDICES_COUNT * sizeof(uint32_t));
     uint32_t uniqueCount = 0;
 
@@ -173,6 +183,7 @@ AppResult createLogicalDevice(Application *pApp)
     }
 
     vkGetDeviceQueue(pApp->device, *indices.pGraphicsFamily, 0, &pApp->graphicsQueue);
+    vkGetDeviceQueue(pApp->device, *indices.pTransferFamily, 0, &pApp->transferQueue);
     vkGetDeviceQueue(pApp->device, *indices.pPresentFamily, 0, &pApp->presentQueue);
 
     free(pUniqueQueueFamilies);

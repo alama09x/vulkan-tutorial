@@ -3,11 +3,12 @@
 
 #include "application.h"
 
-#define QUEUE_FAMILY_INDICES_COUNT 2
+#define QUEUE_FAMILY_INDICES_COUNT 3
 
 typedef struct QueueFamilyIndices {
     uint32_t *pGraphicsFamily;
     uint32_t *pPresentFamily;
+    uint32_t *pTransferFamily;
 } QueueFamilyIndices;
 
 void findQueueFamilies(
