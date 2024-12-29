@@ -14,7 +14,8 @@ typedef struct QueueFamilyIndices {
 void findQueueFamilies(
     VkPhysicalDevice device,
     VkSurfaceKHR surface,
-    QueueFamilyIndices *pIndices);
+    QueueFamilyIndices *pIndices
+);
 void cleanupQueueFamilies(QueueFamilyIndices *pIndices);
 
 AppResult pickPhysicalDevice(Application *pApp);

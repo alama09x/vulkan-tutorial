@@ -1,4 +1,4 @@
-#include "init/render_pass.h"
+#include "render_pass.h"
 #include <stdio.h>
 
 AppResult createRenderPass(Application *pApp)
@@ -44,12 +44,10 @@ AppResult createRenderPass(Application *pApp)
         .pDependencies = &dependency,
     };
 
-    if (vkCreateRenderPass(pApp->device, &renderPassInfo, NULL, &pApp->renderPass)
-        != VK_SUCCESS)
-    {
-        fputs("Error: failed to create render pass!\n", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(
+        vkCreateRenderPass(pApp->device, &renderPassInfo, NULL, &pApp->renderPass),
+        "failed to create render pass"
+    );
 
     return APP_SUCCESS;
 }

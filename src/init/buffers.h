@@ -5,5 +5,6 @@
 
 AppResult createVertexBuffer(Application *pApp);
 AppResult createIndexBuffer(Application *pApp);
+AppResult createUniformBuffers(Application *pApp);
 
 #endif

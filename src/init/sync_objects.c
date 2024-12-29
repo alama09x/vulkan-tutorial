@@ -1,4 +1,5 @@
-#include "init/sync_objects.h"
+#include "sync_objects.h"
+
 #include <stdio.h>
 
 AppResult createSyncObjects(Application *app)
@@ -13,15 +14,26 @@ AppResult createSyncObjects(Application *app)
     };
 
     for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        if (vkCreateSemaphore(app->device, &semaphoreInfo, NULL, &app->imageAvailableSemaphores[i])
-            != VK_SUCCESS ||
-            vkCreateSemaphore(app->device, &semaphoreInfo, NULL, &app->renderFinishedSemaphores[i])
-            != VK_SUCCESS ||
-            vkCreateFence(app->device, &fenceInfo, NULL, &app->inFlightFences[i])
-            != VK_SUCCESS)
-        {
-            fputs("Error: failed to create synchronization objects for a frame!\n", stderr);
-            return APP_ERROR;
+        if (
+            vkCreateSemaphore(
+                app->device,
+                &semaphoreInfo,
+                NULL,
+                &app->imageAvailableSemaphores[i]
+            ) != VK_SUCCESS ||
+            vkCreateSemaphore(
+                app->device,
+                &semaphoreInfo,
+                NULL,
+                &app->renderFinishedSemaphores[i]
+            ) != VK_SUCCESS ||
+            vkCreateFence(
+                app->device,
+                &fenceInfo,
+                NULL, &app->inFlightFences[i]
+            ) != VK_SUCCESS
+        ) {
+            APP_ERROR("failed to create synchronization objects for a frame");
         }
     }
 

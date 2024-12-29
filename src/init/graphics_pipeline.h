@@ -3,6 +3,7 @@
 
 #include "application.h"
 
+AppResult createDescriptorSetLayout(Application *pApp);
 AppResult createGraphicsPipeline(Application *pApp);
 
 #endif

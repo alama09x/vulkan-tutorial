@@ -1,6 +1,7 @@
-#include "init/device.h"
-#include "init/validation.h"
-#include "init/swapchain.h"
+#include "device.h"
+
+#include "validation.h"
+#include "swapchain.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -30,13 +31,17 @@ static bool queueFamilyIndicesComplete(const QueueFamilyIndices *pIndices)
 void findQueueFamilies(
     VkPhysicalDevice device,
     VkSurfaceKHR surface,
-    QueueFamilyIndices *pIndices)
-{
+    QueueFamilyIndices *pIndices
+) {
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, NULL);
 
     VkQueueFamilyProperties pQueueFamilies[queueFamilyCount];
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, pQueueFamilies);
+    vkGetPhysicalDeviceQueueFamilyProperties(
+        device,
+        &queueFamilyCount,
+        pQueueFamilies
+    );
 
     for (uint32_t i = 0; i < queueFamilyCount; i++) {
         if (pQueueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
@@ -88,7 +93,10 @@ static bool checkDeviceExtensionSupport(VkPhysicalDevice device)
         bool extensionFound = false;
 
         for (uint8_t j = 0; j < extensionCount; j++) {
-            if (strcmp(DEVICE_EXTENSIONS[i], pAvailableExtensions[j].extensionName) == 0) {
+            if (strcmp(
+                DEVICE_EXTENSIONS[i],
+                pAvailableExtensions[j].extensionName
+            ) == 0) {
                 extensionFound = true;
                 break;
             }
@@ -112,7 +120,8 @@ static bool deviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
 
     bool swapchainAdequate = false;
     if (extensionsSupported) {
-        SwapchainSupportDetails swapchainSupport = querySwapchainSupport(device, surface);
+        SwapchainSupportDetails swapchainSupport =
+            querySwapchainSupport(device, surface);
 
         swapchainAdequate = swapchainSupport.pFormats != NULL &&
             swapchainSupport.pPresentModes != NULL;
@@ -122,7 +131,7 @@ static bool deviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
 
     cleanupQueueFamilies(&indices);
 
-    return indicesComplete & extensionsSupported && swapchainAdequate;
+    return indicesComplete && extensionsSupported && swapchainAdequate;
 }
 
 AppResult createLogicalDevice(Application *pApp)
@@ -130,8 +139,14 @@ AppResult createLogicalDevice(Application *pApp)
     QueueFamilyIndices indices;
     findQueueFamilies(pApp->physicalDevice, pApp->surface, &indices);
 
-    uint32_t queueFamilies[] = { *indices.pGraphicsFamily, *indices.pPresentFamily, *indices.pTransferFamily };
-    uint32_t *pUniqueQueueFamilies = malloc(QUEUE_FAMILY_INDICES_COUNT * sizeof(uint32_t));
+    const uint32_t queueFamilies[] = {
+        *indices.pGraphicsFamily,
+        *indices.pPresentFamily,
+        *indices.pTransferFamily
+    };
+
+    uint32_t *pUniqueQueueFamilies =
+        malloc(QUEUE_FAMILY_INDICES_COUNT * sizeof(uint32_t));
     uint32_t uniqueCount = 0;
 
     for (uint8_t i = 0; i < QUEUE_FAMILY_INDICES_COUNT; i++) {
@@ -177,10 +192,10 @@ AppResult createLogicalDevice(Application *pApp)
         createInfo.ppEnabledLayerNames = VALIDATION_LAYERS;
     }
 
-    if (vkCreateDevice(pApp->physicalDevice, &createInfo, NULL, &pApp->device) != VK_SUCCESS) {
-        fputs("Error: failed to create logical device!\n", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(
+        vkCreateDevice(pApp->physicalDevice, &createInfo, NULL, &pApp->device),
+        "failed to create logical device"
+    );
 
     vkGetDeviceQueue(pApp->device, *indices.pGraphicsFamily, 0, &pApp->graphicsQueue);
     vkGetDeviceQueue(pApp->device, *indices.pTransferFamily, 0, &pApp->transferQueue);
@@ -198,8 +213,7 @@ AppResult pickPhysicalDevice(Application *pApp)
     vkEnumeratePhysicalDevices(pApp->instance, &deviceCount, NULL);
 
     if (deviceCount == 0) {
-        fputs("Error: failed to find GPUs with Vulkan support!\n", stderr);
-        return APP_ERROR;
+        APP_ERROR("failed to find GPUs with Vulkan support");
     }
 
     VkPhysicalDevice pDevices[deviceCount];
@@ -213,8 +227,7 @@ AppResult pickPhysicalDevice(Application *pApp)
     }
 
     if (!pApp->physicalDevice) {
-        fputs("Error: failed to find a suitable GPU!\n", stderr);
-        return APP_ERROR;
+        APP_ERROR("failed to find a suitable GPU");
     }
 
     return APP_SUCCESS;

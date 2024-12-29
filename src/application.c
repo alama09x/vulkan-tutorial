@@ -18,9 +18,9 @@
 #include <stdlib.h>
 
 #ifdef NDEBUG
-const bool ENABLE_VALIDATION_LAYERS = false;
+    const bool ENABLE_VALIDATION_LAYERS = false;
 #else
-const bool ENABLE_VALIDATION_LAYERS = true;
+    const bool ENABLE_VALIDATION_LAYERS = true;
 #endif
 
 static const uint32_t WIDTH = 800;
@@ -28,12 +28,15 @@ static const uint32_t HEIGHT = 600;
 
 static AppResult createSurface(Application *pApp)
 {
-    if (glfwCreateWindowSurface(pApp->instance, pApp->pWindow, NULL, &pApp->surface)
-        != VK_SUCCESS)
-    {
-        fputs("Error: failed to create window surface!\n", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(
+        glfwCreateWindowSurface(
+            pApp->instance,
+            pApp->pWindow,
+            NULL,
+            &pApp->surface
+        ),
+        "failed to create window surface"
+    );
 
     return APP_SUCCESS;
 }
@@ -49,109 +52,66 @@ static AppResult initWindow(Application *pApp)
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     if (!(pApp->pWindow = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", NULL, NULL))) {
-        fputs("Error: failed to create window!\n", stderr);
-        return APP_ERROR;
+        APP_ERROR("failed to create window");
     }
 
     glfwSetWindowUserPointer(pApp->pWindow, pApp);
     glfwSetFramebufferSizeCallback(pApp->pWindow, framebufferResizeCallback);
+
     return APP_SUCCESS;
 }
 
 static AppResult initVulkan(Application *pApp)
 {
-    enum AppResult result = APP_SUCCESS;
-    if ((result = createInstance(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to create instance!\n", stderr);
-        return result;
-    }
+    APP_EXPECT(createInstance(pApp), "failed to create instance");
 
-    if ((result = setupDebugMessenger(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to setup debug messenger!\n", stderr);
-        return result;
-    }
+    APP_EXPECT(setupDebugMessenger(pApp), "failed to setup debug messenger");
 
-    if ((result = createSurface(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to create window surface!\n", stderr);
-        return result;
-    }
+    APP_EXPECT(createSurface(pApp), "failed to create window surface");
 
-    if ((result = pickPhysicalDevice(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to pick physical device!\n", stderr);
-        return result;
-    }
+    APP_EXPECT(pickPhysicalDevice(pApp), "failed to pick physical device");
+    APP_EXPECT(createLogicalDevice(pApp), "failed to create logical device");
 
-    if ((result = createLogicalDevice(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to create logical device!\n", stderr);
-        return result;
-    }
+    APP_EXPECT(createSwapchain(pApp), "failed to create swapchain");
+    APP_EXPECT(createImageViews(pApp), "failed to create image views");
 
-    if ((result = createSwapchain(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to create swapchain!\n", stderr);
-        return result;
-    }
+    APP_EXPECT(createRenderPass(pApp), "failed to create render pass");
 
-    if ((result = createImageViews(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to create image views!\n", stderr);
-        return result;
-    }
+    APP_EXPECT(
+        createDescriptorSetLayout(pApp),
+        "failed to create descriptor set layout"
+    );
+    APP_EXPECT(createGraphicsPipeline(pApp), "failed to create graphics pipeline");
 
-    if ((result = createRenderPass(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to create render pass!\n", stderr);
-        return result;
-    }
-
-    if ((result = createGraphicsPipeline(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to create graphics pipeline!\n", stderr);
-        return result;
-    }
-
-    if ((result = createFramebuffers(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to create framebuffers!\n", stderr);
-        return result;
-    }
+    APP_EXPECT(createFramebuffers(pApp), "failed to create framebuffers");
 
     QueueFamilyIndices indices;
     findQueueFamilies(pApp->physicalDevice, pApp->surface, &indices);
 
-    if ((result = createCommandPool(
-        pApp, &pApp->graphicsCommandPool,
-        *indices.pGraphicsFamily)
-    ) != APP_SUCCESS) {
-        fputs("Error: failed to create graphics command pool!\n", stderr);
-        return result;
-    }
-
-    if ((result = createCommandPool(
-        pApp,
-        &pApp->transferCommandPool,
-        *indices.pTransferFamily)
-    ) != APP_SUCCESS) {
-        fputs("Error: failed to create transfer command pool!\n", stderr);
-        return result;
-    }
+    APP_EXPECT(
+        createCommandPool(
+            pApp,
+            &pApp->graphicsCommandPool,
+            *indices.pGraphicsFamily),
+        "failed to create graphics command pool"
+    );
+    APP_EXPECT(
+        createCommandPool(
+            pApp,
+            &pApp->transferCommandPool,
+            *indices.pTransferFamily
+        ),
+        "failed to create transfer command pool"
+    );
 
     cleanupQueueFamilies(&indices);
 
-    if ((result = createVertexBuffer(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to create vertex buffer!\n", stderr);
-        return result;
-    }
+    APP_EXPECT(createVertexBuffer(pApp), "failed to create vertex buffer");
+    APP_EXPECT(createIndexBuffer(pApp), "failed to create index buffer");
+    APP_EXPECT(createUniformBuffers(pApp), "failed to create uniform buffers");
 
-    if ((result = createIndexBuffer(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to create index buffer!\n", stderr);
-        return result;
-    }
-
-    if ((result = createCommandBuffers(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to create command buffer!\n", stderr);
-        return result;
-    }
-
-    if ((result = createSyncObjects(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to create sync objects!\n", stderr);
-        return result;
-    }
+    APP_EXPECT(createCommandBuffers(pApp), "failed to create command buffer!");
+    APP_EXPECT(createSyncObjects(pApp), "failed to create sync objects!");
 
     return APP_SUCCESS;
 }
@@ -183,6 +143,9 @@ static AppResult cleanup(struct Application *pApp)
 
     vkDestroyPipeline(pApp->device, pApp->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(pApp->device, pApp->pipelineLayout, NULL);
+
+    vkDestroyDescriptorSetLayout(pApp->device, pApp->descriptorSetLayout, NULL);
+
     vkDestroyRenderPass(pApp->device, pApp->renderPass, NULL);
 
     for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -212,23 +175,10 @@ static AppResult cleanup(struct Application *pApp)
 
 AppResult appRun(Application *pApp)
 {
-    int result;
-    if ((result = initWindow(pApp)) != APP_SUCCESS) {
-        fputs("Error: failed to initialize window!\n", stderr);
-        goto cleanup;
-    }
+    APP_EXPECT(initWindow(pApp), "failed to initialize window");
+    APP_EXPECT(initVulkan(pApp), "failed to initialize Vulkan");
+    APP_EXPECT(mainLoop(pApp), "main loop failed");
+    APP_EXPECT(cleanup(pApp), "failed to cleanup");
 
-    if ((result = initVulkan(pApp)) != APP_SUCCESS) {
-        fputs("Error failed to initialize Vulkan!\n", stderr);
-        goto cleanup;
-    }
-
-    if ((result = mainLoop(pApp)) != APP_SUCCESS) {
-        fputs("Error: main loop failed!\n", stderr);
-        goto cleanup;
-    }
-
-cleanup:
-    cleanup(pApp);
-    return result;
+    return APP_SUCCESS;
 }

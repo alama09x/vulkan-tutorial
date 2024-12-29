@@ -1,10 +1,11 @@
-#include "init/framebuffers.h"
+#include "framebuffers.h"
 #include <stdio.h>
 #include <stdlib.h>
 
 AppResult createFramebuffers(Application *pApp)
 {
-    pApp->pSwapchainFramebuffers = malloc(pApp->swapchainImageCount * sizeof(VkFramebuffer));
+    pApp->pSwapchainFramebuffers =
+        malloc(pApp->swapchainImageCount * sizeof(VkFramebuffer));
 
     for (uint32_t i = 0; i < pApp->swapchainImageCount; i++) {
         const VkImageView attachments[] = {
@@ -21,13 +22,14 @@ AppResult createFramebuffers(Application *pApp)
             .layers = 1,
         };
 
-        if (vkCreateFramebuffer(
-            pApp->device, &framebufferInfo, NULL, &pApp->pSwapchainFramebuffers[i])
-            != VK_SUCCESS)
-        {
-            fputs("Error: failed to create framebuffer!\n", stderr);
-            return APP_ERROR;
-        }
+        APP_EXPECT(
+            vkCreateFramebuffer(
+                pApp->device,
+                &framebufferInfo,
+                NULL,
+                &pApp->pSwapchainFramebuffers[i]),
+            "failed to create framebuffer"
+        );
     }
     return APP_SUCCESS;
 }

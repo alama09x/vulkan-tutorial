@@ -1,7 +1,10 @@
-#include "init/buffers.h"
+#include "buffers.h"
 
-#include "init/device.h"
-#include "init/vertex.h"
+#include "data/vertex.h"
+#include "data/index.h"
+#include "data/uniform.h"
+
+#include "device.h"
 #include <stdio.h>
 #include <string.h>
 #include <vulkan/vulkan_core.h>
@@ -58,10 +61,10 @@ AppResult createBuffer(
         };
     }
 
-    if (vkCreateBuffer(pApp->device, &bufferInfo, NULL, pBuffer) != VK_SUCCESS) {
-        fputs("Error: failed to allocate buffer memory!\n", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(
+        vkCreateBuffer(pApp->device, &bufferInfo, NULL, pBuffer),
+        "failed to allocate buffer memory"
+    );
 
     cleanupQueueFamilies(&indices);
 
@@ -77,10 +80,10 @@ AppResult createBuffer(
         .memoryTypeIndex = memoryTypeIndex,
     };
 
-    if (vkAllocateMemory(pApp->device, &allocInfo, NULL, pBufferMemory) != VK_SUCCESS) {
-        fputs("Error: failed to allocate buffer memory!", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(
+        vkAllocateMemory(pApp->device, &allocInfo, NULL, pBufferMemory),
+        "failed to allocate buffer memory"
+    );
 
     vkBindBufferMemory(pApp->device, *pBuffer, *pBufferMemory, 0);
     return APP_SUCCESS;
@@ -131,34 +134,35 @@ AppResult createVertexBuffer(Application *pApp)
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
 
-    if (createBuffer(
-        pApp,
-        bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        &stagingBuffer,
-        &stagingBufferMemory) != VK_SUCCESS)
-    {
-        fputs("Error: failed to create staging buffer!\n", stderr);
-        return APP_ERROR;
-    }
-
+    APP_EXPECT(
+        createBuffer(
+            pApp,
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            &stagingBuffer,
+            &stagingBufferMemory
+        ),
+        "failed to create staging buffer"
+    );
     void *data;
     vkMapMemory(pApp->device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, VERTICES, (size_t) bufferSize);
     vkUnmapMemory(pApp->device, stagingBufferMemory);
 
-    if (createBuffer(
-        pApp,
-        bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        &pApp->vertexBuffer,
-        &pApp->vertexBufferMemory) != VK_SUCCESS)
-    {
-        fputs("Error: failed to create staging buffer!\n", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(
+        createBuffer(
+            pApp,
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            &pApp->vertexBuffer,
+            &pApp->vertexBufferMemory
+        ),
+        "failed to create vertex buffer"
+    );
 
     copyBuffer(pApp, stagingBuffer, pApp->vertexBuffer, bufferSize);
 
@@ -175,39 +179,60 @@ AppResult createIndexBuffer(Application *pApp)
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
 
-    if (createBuffer(
-        pApp,
-        bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        &stagingBuffer,
-        &stagingBufferMemory) != VK_SUCCESS)
-    {
-        fputs("Error: failed to create staging buffer!\n", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(
+        createBuffer(
+            pApp,
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            &stagingBuffer,
+            &stagingBufferMemory
+        ),
+        "failed to create staging buffer"
+    );
 
     void *data;
     vkMapMemory(pApp->device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, INDICES, (size_t) bufferSize);
     vkUnmapMemory(pApp->device, stagingBufferMemory);
 
-    if (createBuffer(
-        pApp,
-        bufferSize,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        &pApp->indexBuffer,
-        &pApp->indexBufferMemory) != VK_SUCCESS)
-    {
-        fputs("Error: failed to create staging buffer!\n", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(
+        createBuffer(
+            pApp,
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            &pApp->indexBuffer,
+            &pApp->indexBufferMemory
+        ),
+        "failed to create index buffer"
+    );
 
     copyBuffer(pApp, stagingBuffer, pApp->indexBuffer, bufferSize);
 
     vkDestroyBuffer(pApp->device, stagingBuffer, NULL);
     vkFreeMemory(pApp->device, stagingBufferMemory, NULL);
+
+    return APP_SUCCESS;
+}
+
+AppResult createUniformBuffers(Application *pApp)
+{
+    const VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        createBuffer(
+            pApp,
+            bufferSize,
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            &pApp->uniformBuffers[i],
+            &pApp->uniformBuffersMemory[i]
+        );
+    }
 
     return APP_SUCCESS;
 }

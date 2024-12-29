@@ -13,7 +13,8 @@ typedef struct SwapchainSupportDetails {
 
 SwapchainSupportDetails querySwapchainSupport(
     VkPhysicalDevice device,
-    VkSurfaceKHR surface);
+    VkSurfaceKHR surface
+);
 void cleanupSwapchainSupport(SwapchainSupportDetails *pDetails);
 AppResult createSwapchain(Application *pApp);
 AppResult createImageViews(Application *pApp);

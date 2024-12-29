@@ -14,6 +14,7 @@ VkDebugUtilsMessengerCreateInfoEXT configureDebugMessengerCreateInfo();
 void destroyDebugUtilsMessengerEXT(
     VkInstance instance,
     VkDebugUtilsMessengerEXT debugMessenger,
-    const VkAllocationCallbacks *pAllocator);
+    const VkAllocationCallbacks *pAllocator
+);
 
 #endif

@@ -1,4 +1,4 @@
-#include "init/validation.h"
+#include "validation.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -13,10 +13,11 @@ static VkResult CreateDebugUtilsMessengerEXT(
     const VkAllocationCallbacks *pAllocator,
     VkDebugUtilsMessengerEXT *pDebugMessenger
 ) {
-    PFN_vkCreateDebugUtilsMessengerEXT func;
+    PFN_vkCreateDebugUtilsMessengerEXT
     func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(
         instance,
-        "vkCreateDebugUtilsMessengerEXT");
+        "vkCreateDebugUtilsMessengerEXT"
+    );
 
     if (func) {
         return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
@@ -33,7 +34,8 @@ void destroyDebugUtilsMessengerEXT(
     PFN_vkDestroyDebugUtilsMessengerEXT func;
     func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(
         instance,
-        "vkDestroyDebugUtilsMessengerEXT");
+        "vkDestroyDebugUtilsMessengerEXT"
+    );
 
     if (func) {
         func(instance, debugMessenger, pAllocator);
@@ -99,13 +101,17 @@ AppResult setupDebugMessenger(Application *pApp)
         return APP_SUCCESS;
     }
 
-    VkDebugUtilsMessengerCreateInfoEXT createInfo = configureDebugMessengerCreateInfo();
-    if (CreateDebugUtilsMessengerEXT(pApp->instance, &createInfo, NULL, &pApp->debugMessenger)
-        != VK_SUCCESS)
-    {
-        fputs("Error: failed to set up debug messenger!\n", stderr);
-        return APP_ERROR;
-    }
+    VkDebugUtilsMessengerCreateInfoEXT createInfo =
+        configureDebugMessengerCreateInfo();
+
+    APP_EXPECT(
+        CreateDebugUtilsMessengerEXT(
+            pApp->instance,
+            &createInfo,
+            NULL,
+            &pApp->debugMessenger),
+        "failed to set up debug messenger"
+    );
 
     return APP_SUCCESS;
 }

@@ -1,31 +1,32 @@
-#include "init/graphics_pipeline.h"
-#include "init/vertex.h"
+#include "graphics_pipeline.h"
+
+#include "data/vertex.h"
 #include <stdio.h>
 #include <stdlib.h>
 
+const uint32_t ATTRIBUTE_DESCRIPTION_COUNT = 2;
+
 static AppResult readFile(const char *pFilename, char **ppCode, uint32_t *pSize)
 {
-    FILE *pf = fopen(pFilename, "rb+");
-    if (!pf) {
+    FILE *pFile = fopen(pFilename, "rb+");
+    if (!pFile) {
         fprintf(stderr, "Error: file \"%s\" could not be opened!\n", pFilename);
         return APP_ERROR;
     }
 
-    fseek(pf, 0, SEEK_END);
-    *pSize = ftell(pf);
+    fseek(pFile, 0, SEEK_END);
+    *pSize = ftell(pFile);
 
     *ppCode = NULL;
     *ppCode = malloc(*pSize * sizeof(char));
     if (!*ppCode) {
-        fputs("Error: could not allocate memory!\n", stderr);
-        return APP_ERROR;
+        APP_ERROR("could not allocate memory");
     }
 
-    rewind(pf);
+    rewind(pFile);
+    fread(*ppCode, sizeof(char), *pSize, pFile);
 
-    fread(*ppCode, sizeof(char), *pSize, pf);
-
-    fclose(pf);
+    fclose(pFile);
     return APP_SUCCESS;
 }
 
@@ -33,20 +34,79 @@ static AppResult createShaderModule(
     const VkDevice device,
     const char *pCode,
     const uint32_t size,
-    VkShaderModule *pShaderModule)
-{
+    VkShaderModule *pShaderModule
+) {
     const VkShaderModuleCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         .codeSize = size,
         .pCode = (const uint32_t *)pCode,
     };
 
-    if (vkCreateShaderModule(device, &createInfo, NULL, pShaderModule) != VK_SUCCESS) {
-        fputs("Error: failed to create shader module!\n", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(
+        vkCreateShaderModule(device, &createInfo, NULL, pShaderModule),
+        "failed to create shader module"
+    );
 
     return APP_SUCCESS;
+}
+
+AppResult createDescriptorSetLayout(Application *pApp)
+{
+    const VkDescriptorSetLayoutBinding uboLayoutBinding = {
+        .binding = 0,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = 1,
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        .pImmutableSamplers = NULL,
+    };
+
+    const VkDescriptorSetLayoutCreateInfo layoutInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .bindingCount = 1,
+        .pBindings = &uboLayoutBinding,
+    };
+
+    APP_EXPECT(
+        vkCreateDescriptorSetLayout(
+            pApp->device,
+            &layoutInfo,
+            NULL,
+            &pApp->descriptorSetLayout
+        ),
+        "failed to create descriptor set layout"
+    );
+
+    return APP_SUCCESS;
+}
+
+static VkVertexInputBindingDescription vertexGetBindingDescription()
+{
+    const VkVertexInputBindingDescription bindingDescription = {
+        .binding = 0,
+        .stride = sizeof(Vertex),
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+    };
+
+    return bindingDescription;
+}
+
+static void vertexGetAttributeDescriptions(
+    VkVertexInputAttributeDescription
+    attributeDescriptions[ATTRIBUTE_DESCRIPTION_COUNT]
+) {
+    attributeDescriptions[0] = (VkVertexInputAttributeDescription) {
+        .binding = 0,
+        .location = 0,
+        .format = VK_FORMAT_R32G32_SFLOAT,
+        .offset = offsetof(Vertex, pos),
+    };
+
+    attributeDescriptions[1] = (VkVertexInputAttributeDescription) {
+        .binding = 0,
+        .location = 1,
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = offsetof(Vertex, color),
+    };
 }
 
 AppResult createGraphicsPipeline(Application *pApp)
@@ -58,8 +118,18 @@ AppResult createGraphicsPipeline(Application *pApp)
     readFile("./bin/frag.spv", &pFragShaderCode, &fragShaderSize);
 
     VkShaderModule vertShaderModule, fragShaderModule;
-    createShaderModule(pApp->device, pVertShaderCode, vertShaderSize, &vertShaderModule);
-    createShaderModule(pApp->device, pFragShaderCode, fragShaderSize, &fragShaderModule);
+    createShaderModule(
+        pApp->device,
+        pVertShaderCode,
+        vertShaderSize,
+        &vertShaderModule
+    );
+    createShaderModule(
+        pApp->device,
+        pFragShaderCode,
+        fragShaderSize,
+        &fragShaderModule
+    );
 
     const VkPipelineShaderStageCreateInfo vertShaderStageInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -80,8 +150,12 @@ AppResult createGraphicsPipeline(Application *pApp)
         fragShaderStageInfo,
     };
 
-    VkVertexInputBindingDescription bindingDescription = vertexGetBindingDescription();
-    VkVertexInputAttributeDescription attributeDescriptions[ATTRIBUTE_DESCRIPTION_COUNT];
+    VkVertexInputBindingDescription bindingDescription =
+        vertexGetBindingDescription();
+
+    VkVertexInputAttributeDescription
+    attributeDescriptions[ATTRIBUTE_DESCRIPTION_COUNT];
+
     vertexGetAttributeDescriptions(attributeDescriptions);
 
     const VkPipelineVertexInputStateCreateInfo vertexInputInfo = {
@@ -157,10 +231,10 @@ AppResult createGraphicsPipeline(Application *pApp)
     };
 
     const VkPipelineColorBlendAttachmentState colorBlendAttachment = {
-        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT
-            | VK_COLOR_COMPONENT_G_BIT
-            | VK_COLOR_COMPONENT_B_BIT
-            | VK_COLOR_COMPONENT_A_BIT,
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+            VK_COLOR_COMPONENT_G_BIT |
+            VK_COLOR_COMPONENT_B_BIT |
+            VK_COLOR_COMPONENT_A_BIT,
         .blendEnable = VK_FALSE,
         .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,  // optional
         .dstColorBlendFactor = VK_BLEND_FACTOR_ZERO, // optional
@@ -181,16 +255,20 @@ AppResult createGraphicsPipeline(Application *pApp)
 
     const VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .setLayoutCount = 0,
+        .setLayoutCount = 1,
+        .pSetLayouts = &pApp->descriptorSetLayout,
         .pushConstantRangeCount = 0,
     };
 
-    if (vkCreatePipelineLayout(pApp->device, &pipelineLayoutInfo, NULL, &pApp->pipelineLayout)
-        != VK_SUCCESS)
-    {
-        fputs("Error: failed to create pipeline layout!\n", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(
+        vkCreatePipelineLayout(
+            pApp->device,
+            &pipelineLayoutInfo,
+            NULL,
+            &pApp->pipelineLayout
+        ),
+        "failed to create pipeline layout"
+    );
 
     const VkGraphicsPipelineCreateInfo pipelineInfo = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -201,23 +279,27 @@ AppResult createGraphicsPipeline(Application *pApp)
         .pViewportState = &viewportState,
         .pRasterizationState = &rasterizer,
         .pMultisampleState = &multisampling,
-        .pDepthStencilState = NULL, // optional
+        .pDepthStencilState = NULL,
         .pColorBlendState = &colorBlending,
         .pDynamicState = &dynamicState,
         .layout = pApp->pipelineLayout,
         .renderPass = pApp->renderPass,
         .subpass = 0,
-        .basePipelineHandle = VK_NULL_HANDLE, // optional
+        .basePipelineHandle = VK_NULL_HANDLE,
         .basePipelineIndex = -1,              // optional
     };
 
-    if (vkCreateGraphicsPipelines(
-        pApp->device, NULL, 1, &pipelineInfo, NULL, &pApp->graphicsPipeline)
-        != VK_SUCCESS)
-    {
-        fputs("Error: failed to create graphics pipeline!\n", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(
+        vkCreateGraphicsPipelines(
+            pApp->device,
+            NULL,
+            1,
+            &pipelineInfo,
+            NULL,
+            &pApp->graphicsPipeline
+        ),
+        "failed to create graphics pipeline"
+    );
 
     vkDestroyShaderModule(pApp->device, vertShaderModule, NULL);
     vkDestroyShaderModule(pApp->device, fragShaderModule, NULL);

@@ -1,7 +1,8 @@
-#include "init/commands.h"
-#include "application.h"
-#include "init/device.h"
-#include "init/vertex.h"
+#include "commands.h"
+
+#include "data/index.h"
+#include "device.h"
+
 #include <stdio.h>
 
 AppResult createCommandPool(Application *pApp, VkCommandPool *pCommandPool, uint32_t queueFamilyIndex)
@@ -15,12 +16,11 @@ AppResult createCommandPool(Application *pApp, VkCommandPool *pCommandPool, uint
         .queueFamilyIndex = queueFamilyIndex,
     };
 
-    if (vkCreateCommandPool(pApp->device, &poolInfo, NULL, pCommandPool)
-        != VK_SUCCESS)
-    {
-        fputs("Error: failed to create command pool!\n", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(
+        vkCreateCommandPool(pApp->device, &poolInfo, NULL, pCommandPool),
+        "failed to create command pool"
+    );
+
     return APP_SUCCESS;
 }
 
@@ -33,12 +33,10 @@ AppResult createCommandBuffers(Application *pApp)
         .commandBufferCount = MAX_FRAMES_IN_FLIGHT,
     };
 
-    if (vkAllocateCommandBuffers(pApp->device, &allocInfo, pApp->commandBuffers)
-        != VK_SUCCESS)
-    {
-        fputs("Error: failure to allocate command buffers!\n", stderr);
-    }
-
+    APP_EXPECT(
+        vkAllocateCommandBuffers(pApp->device, &allocInfo, pApp->commandBuffers),
+        "failure to allocate command buffers"
+    );
 
     return APP_SUCCESS;
 }
@@ -46,18 +44,18 @@ AppResult createCommandBuffers(Application *pApp)
 AppResult recordCommandBuffer(
     Application *pApp,
     VkCommandBuffer commandBuffer,
-    uint32_t imageIndex)
-{
+    uint32_t imageIndex
+) {
     const VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = 0,
         .pInheritanceInfo = NULL, // optional
     };
 
-    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-        fputs("Error: failed to begin recording command buffer!\n", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(
+        vkBeginCommandBuffer(commandBuffer, &beginInfo),
+        "failed to begin recording command buffer"
+    );
 
     const VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
 
@@ -75,7 +73,10 @@ AppResult recordCommandBuffer(
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(
-        commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pApp->graphicsPipeline);
+        commandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pApp->graphicsPipeline
+    );
 
     const VkBuffer vertexBuffers[] = { pApp->vertexBuffer };
     const VkDeviceSize offsets[] = { 0 };
@@ -102,10 +103,7 @@ AppResult recordCommandBuffer(
 
     vkCmdEndRenderPass(commandBuffer);
 
-    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-        fputs("Error: failed to record command buffer!\n", stderr);
-        return APP_ERROR;
-    }
+    APP_EXPECT(vkEndCommandBuffer(commandBuffer), "failed to record command buffer");
 
     return APP_SUCCESS;
 }
