@@ -57,7 +57,11 @@ AppResult recordCommandBuffer(
         "failed to begin recording command buffer"
     );
 
-    const VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 0.0f};
+    const VkClearValue clearColor = {
+        .color = {
+            .float32 = { 0.0f, 0.0f, 0.0f, 0.0f },
+        },
+    };
 
     const VkRenderPassBeginInfo renderPassInfo = {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,

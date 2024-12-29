@@ -85,7 +85,7 @@ static bool checkDeviceExtensionSupport(VkPhysicalDevice device)
     vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, pAvailableExtensions);
 
     puts("Available device extensions:");
-    for (int i = 0; i < extensionCount; i++) {
+    for (uint32_t i = 0; i < extensionCount; i++) {
         printf("\t%s\n", pAvailableExtensions[i].extensionName);
     }
 

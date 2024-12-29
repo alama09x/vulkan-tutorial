@@ -5,7 +5,7 @@
 
 typedef uint16_t Index;
 
-const uint32_t INDEX_COUNT = 6;
-const Index INDICES[] = { 0, 1, 2, 2, 3, 0 };
+extern const uint32_t INDEX_COUNT;
+extern const Index INDICES[];
 
 #endif

@@ -1,27 +1,40 @@
-.PHONY: test clean
+UNAME_S = $(shell uname -s)
 
-CFLAGS = -O2
-LDFLAGS = -Iinclude -lglfw -lvulkan -ldl -lpthread -lX11 -lXxf86vm -lXrandr -lXi
+CC = clang
+GLSLC = glslc
+
+CFLAGS = -std=c2x -O3 -g -Wall -Wextra -Isrc
+LDFLAGS = -lglfw -lvulkan -lX11 -lXxf86vm -lXrandr -lXi
+
+SRC = $(wildcard src/*.c) $(wildcard src/**/*.c) \
+	  $(wildcard src/**/**/*.c) $(wildcard src/**/**/**/*.c)
+BIN = bin
 BINARY = main
 
-test_macos: build_macos
-	./bin/$(BINARY)
+ifeq ($(UNAME_S), Darwin)
+	LDFLAGS += -rpath ${VULKAN_SDK}/lib
+endif
 
-test_linux: build_linux
-	./bin/$(BINARY)
+ifeq ($(UNAME_S), Linux)
+	LDFLAGS += -ldl -lpthread
+endif
 
-build_macos: shaders
-	clang -rpath ~/VulkanSDK/1.3.296.0/macOS/lib \
-		$(CFLAGS) -o ./bin/$(BINARY) $(wildcard ./src/*.c) \
-		$(wildcard ./src/init/*.c) $(LDFLAGS)
+.PHONY: all clean
 
-build_linux: shaders
-	clang $(CFLAGS) -o ./bin/$(BINARY) $(wildcard ./src/*.c) \
-		$(wildcard ./src/init/*.c) $(LDFLAGS)
+all: dirs shaders build run
+
+dirs:
+	mkdir -p ./$(BIN)
+
+build:
+	$(CC) $(CFLAGS) -o ./$(BIN)/$(BINARY) $(SRC) $(LDFLAGS)
 
 shaders:
-	glslc ./shaders/shader.vert -o ./bin/vert.spv
-	glslc ./shaders/shader.frag -o ./bin/frag.spv
+	$(GLSLC) ./shaders/shader.vert -o ./bin/vert.spv
+	$(GLSLC) ./shaders/shader.frag -o ./bin/frag.spv
+
+run:
+	./$(BIN)/$(BINARY)
 
 clean:
-	rm -f ./bin/$(BINARY)
+	rm -f ./$(BIN)
