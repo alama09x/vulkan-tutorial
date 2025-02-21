@@ -155,7 +155,7 @@ AppResult createVertexBuffer(Application *pApp)
         createBuffer(
             pApp,
             bufferSize,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             &pApp->vertexBuffer,
@@ -201,7 +201,7 @@ AppResult createIndexBuffer(Application *pApp)
         createBuffer(
             pApp,
             bufferSize,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             &pApp->indexBuffer,
@@ -231,6 +231,14 @@ AppResult createUniformBuffers(Application *pApp)
                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             &pApp->uniformBuffers[i],
             &pApp->uniformBuffersMemory[i]
+        );
+
+        vkMapMemory(
+            pApp->device,
+            pApp->uniformBuffersMemory[i],
+            0,
+            bufferSize, 0,
+            &pApp->uniformBuffersMapped[i]
         );
     }
 

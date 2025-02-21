@@ -1,10 +1,14 @@
 #include "draw_frame.h"
+#include "data/uniform.h"
 #include "swapchain.h"
 #include "framebuffers.h"
 #include "commands.h"
+#include <string.h>
 
+#define CGLM_FORCE_RADIANS
 #include <stdio.h>
 #include <stdlib.h>
+#include <cglm/cglm.h>
 
 AppResult cleanupSwapchain(Application *pApp)
 {
@@ -49,7 +53,43 @@ static AppResult recreateSwapchain(Application *pApp)
     return APP_SUCCESS;
 }
 
-AppResult drawFrame(Application *pApp, uint32_t currentFrame)
+static void updateUniformBuffer(
+    Application *pApp,
+    uint32_t currentImage,
+    const time_t *pStartTime
+) {
+    const time_t currentTime = time(NULL);
+    const double time = difftime(currentTime, *pStartTime);
+
+    UniformBufferObject ubo;
+    glm_mat4_copy(GLM_MAT4_IDENTITY, ubo.model);
+
+    glm_rotate(
+        ubo.model,
+        time * glm_rad(90.0f),
+        (vec3){ 0.0f, 0.0f, 1.0f, }
+    );
+
+    glm_lookat(
+        (vec3){ 2.0f, 2.0f, 2.0f },
+        (vec3){ 0.0f, 0.0f, 0.0f },
+        (vec3){ 0.0f, 0.0f, 1.0f },
+        ubo.view
+    );
+
+    glm_perspective(
+        glm_rad(45.0f),
+        pApp->swapchainExtent.width / (float)pApp->swapchainExtent.height,
+        0.1f,
+        10.0f,
+        ubo.proj
+    );
+    ubo.proj[1][1] *= -1;
+
+    memcpy(pApp->uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+}
+
+AppResult drawFrame(Application *pApp, uint32_t currentFrame, const time_t *pStartTime)
 {
     vkWaitForFences(
         pApp->device,
@@ -79,7 +119,12 @@ AppResult drawFrame(Application *pApp, uint32_t currentFrame)
     vkResetFences(pApp->device, 1, &pApp->inFlightFences[currentFrame]);
 
     vkResetCommandBuffer(pApp->commandBuffers[currentFrame], 0);
-    recordCommandBuffer(pApp, pApp->commandBuffers[currentFrame], imageIndex);
+    recordCommandBuffer(
+        pApp,
+        pApp->commandBuffers[currentFrame],
+        imageIndex,
+        currentFrame
+    );
 
     const VkSemaphore waitSemaphores[] = {
         pApp->imageAvailableSemaphores[currentFrame],
@@ -90,6 +135,8 @@ AppResult drawFrame(Application *pApp, uint32_t currentFrame)
     const VkSemaphore signalSemaphores[] = {
         pApp->renderFinishedSemaphores[currentFrame],
     };
+
+    updateUniformBuffer(pApp, currentFrame, pStartTime);
 
     const VkSubmitInfo submitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,

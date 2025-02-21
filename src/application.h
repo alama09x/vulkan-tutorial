@@ -55,6 +55,9 @@ typedef struct Application {
     VkBuffer                    uniformBuffers[MAX_FRAMES_IN_FLIGHT];
     VkDeviceMemory              uniformBuffersMemory[MAX_FRAMES_IN_FLIGHT];
     void*                       uniformBuffersMapped[MAX_FRAMES_IN_FLIGHT];
+
+    VkDescriptorPool            descriptorPool;
+    VkDescriptorSet             descriptorSets[MAX_FRAMES_IN_FLIGHT];
 } Application;
 
 typedef enum AppResult {

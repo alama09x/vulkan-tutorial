@@ -41,8 +41,11 @@ static AppResult createSurface(Application *pApp)
     return APP_SUCCESS;
 }
 
-static void framebufferResizeCallback(GLFWwindow *pWindow, int width, int height)
-{
+static void framebufferResizeCallback(
+    GLFWwindow *pWindow,
+    __attribute__((unused))int width,
+    __attribute__((unused))int height
+) {
     Application *pApp = (Application *)glfwGetWindowUserPointer(pWindow);
     pApp->framebufferResized = true;
 }
@@ -109,6 +112,8 @@ static AppResult initVulkan(Application *pApp)
     APP_EXPECT(createVertexBuffer(pApp), "failed to create vertex buffer");
     APP_EXPECT(createIndexBuffer(pApp), "failed to create index buffer");
     APP_EXPECT(createUniformBuffers(pApp), "failed to create uniform buffers");
+    APP_EXPECT(createDescriptorPool(pApp), "failed to create descriptor pool");
+    APP_EXPECT(createDescriptorSets(pApp), "failed to create descriptor sets");
 
     APP_EXPECT(createCommandBuffers(pApp), "failed to create command buffer!");
     APP_EXPECT(createSyncObjects(pApp), "failed to create sync objects!");
@@ -119,10 +124,11 @@ static AppResult initVulkan(Application *pApp)
 static AppResult mainLoop(Application *pApp)
 {
     uint32_t currentFrame = 0;
+    const time_t startTime = time(NULL);
     pApp->framebufferResized = false;
     while (!glfwWindowShouldClose(pApp->pWindow)) {
         glfwPollEvents();
-        drawFrame(pApp, currentFrame);
+        drawFrame(pApp, currentFrame, &startTime);
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
@@ -143,6 +149,13 @@ static AppResult cleanup(struct Application *pApp)
 
     vkDestroyPipeline(pApp->device, pApp->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(pApp->device, pApp->pipelineLayout, NULL);
+
+    for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        vkDestroyBuffer(pApp->device, pApp->uniformBuffers[i], NULL);
+        vkFreeMemory(pApp->device, pApp->uniformBuffersMemory[i], NULL);
+    }
+
+    vkDestroyDescriptorPool(pApp->device, pApp->descriptorPool, NULL);
 
     vkDestroyDescriptorSetLayout(pApp->device, pApp->descriptorSetLayout, NULL);
 

@@ -1,5 +1,7 @@
 #include "graphics_pipeline.h"
 
+#include "application.h"
+#include "data/uniform.h"
 #include "data/vertex.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,6 +48,72 @@ static AppResult createShaderModule(
         vkCreateShaderModule(device, &createInfo, NULL, pShaderModule),
         "failed to create shader module"
     );
+
+    return APP_SUCCESS;
+}
+
+AppResult createDescriptorPool(Application *pApp)
+{
+    const VkDescriptorPoolSize poolSize = {
+        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = (uint32_t)MAX_FRAMES_IN_FLIGHT,
+    };
+
+    const VkDescriptorPoolCreateInfo poolInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .poolSizeCount = 1,
+        .pPoolSizes = &poolSize,
+        .maxSets = (uint32_t)MAX_FRAMES_IN_FLIGHT,
+    };
+
+    APP_EXPECT(
+        vkCreateDescriptorPool(pApp->device, &poolInfo, NULL, &pApp->descriptorPool),
+        "failed to create descriptor pool!"
+    );
+
+    return APP_SUCCESS;
+}
+
+AppResult createDescriptorSets(Application *pApp)
+{
+    VkDescriptorSetLayout layouts[MAX_FRAMES_IN_FLIGHT];
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        layouts[i] = pApp->descriptorSetLayout;
+    }
+
+    const VkDescriptorSetAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .descriptorPool = pApp->descriptorPool,
+        .descriptorSetCount = (uint32_t)MAX_FRAMES_IN_FLIGHT,
+        .pSetLayouts = layouts,
+    };
+
+    APP_EXPECT(
+        vkAllocateDescriptorSets(pApp->device, &allocInfo, pApp->descriptorSets),
+        "failed to allocate descriptor sets!"
+    );
+
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        const VkDescriptorBufferInfo bufferInfo = {
+            .buffer = pApp->uniformBuffers[i],
+            .offset = 0,
+            .range = sizeof(UniformBufferObject),
+        };
+
+        const VkWriteDescriptorSet descriptorWrite = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = pApp->descriptorSets[i],
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+            .pBufferInfo = &bufferInfo,
+            .pImageInfo = NULL,
+            .pTexelBufferView = NULL,
+        };
+
+        vkUpdateDescriptorSets(pApp->device, 1, &descriptorWrite, 0, NULL);
+    }
 
     return APP_SUCCESS;
 }
@@ -220,7 +288,7 @@ AppResult createGraphicsPipeline(Application *pApp)
         // wider requires enabling designated GPU feature
         .lineWidth = 1.0f,
         .cullMode = VK_CULL_MODE_BACK_BIT,
-        .frontFace = VK_FRONT_FACE_CLOCKWISE,
+        .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .depthBiasEnable = VK_FALSE,
     };
 

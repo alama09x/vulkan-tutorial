@@ -44,7 +44,8 @@ AppResult createCommandBuffers(Application *pApp)
 AppResult recordCommandBuffer(
     Application *pApp,
     VkCommandBuffer commandBuffer,
-    uint32_t imageIndex
+    uint32_t imageIndex,
+    uint32_t currentFrame
 ) {
     const VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -102,6 +103,17 @@ AppResult recordCommandBuffer(
         .extent = pApp->swapchainExtent,
     };
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+    vkCmdBindDescriptorSets(
+        commandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pApp->pipelineLayout,
+        0,
+        1,
+        &pApp->descriptorSets[currentFrame],
+        0,
+        NULL
+    );
 
     vkCmdDrawIndexed(commandBuffer, INDEX_COUNT, 1, 0, 0, 0);
 
