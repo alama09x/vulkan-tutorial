@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-AppResult createFramebuffers(Application *pApp)
+/// Must clean up `pApp->pSwapchainBuffers`
+AppResult createFramebuffers(Application* pApp)
 {
     pApp->pSwapchainFramebuffers =
         malloc(pApp->swapchainImageCount * sizeof(VkFramebuffer));

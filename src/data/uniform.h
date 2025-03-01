@@ -3,6 +3,7 @@
 
 #include <cglm/cglm.h>
 
+// Accessed as global objects by shaders
 typedef struct UniformBufferObject {
     mat4 model;
     mat4 view;

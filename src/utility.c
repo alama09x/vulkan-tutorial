@@ -1,10 +1,10 @@
 #include "utility.h"
 
-void clamp(int *val, int min, int max)
+void clamp(int* pVal, int min, int max)
 {
-    if (*val < min) {
-        *val = min;
-    } else if (*val > max) {
-        *val = max;
+    if (*pVal < min) {
+        *pVal = min;
+    } else if (*pVal > max) {
+        *pVal = max;
     }
 }

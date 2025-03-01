@@ -9,16 +9,18 @@
 #include <string.h>
 #include <vulkan/vulkan_core.h>
 
+/// Find ideal memory type
 static AppResult findMemoryType(
-    VkPhysicalDevice physicalDevice,
-    uint32_t typeFilter,
-    VkMemoryPropertyFlags properties,
-    uint32_t *pMemoryType)
+    VkPhysicalDevice            physicalDevice,
+    uint32_t                    typeFilter,
+    VkMemoryPropertyFlags       properties,
+    uint32_t*                   pMemoryType)
 {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+        // Check if all required memory properties are included by iteratively checking each bit
         if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags &
             properties) == properties)
         {
@@ -31,13 +33,15 @@ static AppResult findMemoryType(
     return APP_ERROR;
 }
 
+/// Creates a buffer and allocates buffer memory
+/// Must clean up `pBuffer` and `pBufferMemory`
 AppResult createBuffer(
-    Application *pApp,
-    VkDeviceSize size,
-    VkBufferUsageFlags usage,
-    VkMemoryPropertyFlags properties,
-    VkBuffer *pBuffer,
-    VkDeviceMemory *pBufferMemory)
+    Application*                pApp,
+    VkDeviceSize                size,
+    VkBufferUsageFlags          usage,
+    VkMemoryPropertyFlags       properties,
+    VkBuffer*                   pBuffer,
+    VkDeviceMemory*             pBufferMemory)
 {
     QueueFamilyIndices indices;
     findQueueFamilies(pApp->physicalDevice, pApp->surface, &indices);
@@ -48,11 +52,14 @@ AppResult createBuffer(
         .usage = usage,
         .queueFamilyIndexCount = 2,
     };
+
     if (*indices.pGraphicsFamily == *indices.pTransferFamily) {
+        // Unified queue family
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         bufferInfo.queueFamilyIndexCount = 1,
         bufferInfo.pQueueFamilyIndices = indices.pGraphicsFamily;
     } else {
+        // Separate queue families
         bufferInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
         bufferInfo.queueFamilyIndexCount = 2,
         bufferInfo.pQueueFamilyIndices = (uint32_t[]) {
@@ -67,7 +74,6 @@ AppResult createBuffer(
     );
 
     cleanupQueueFamilies(&indices);
-
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(pApp->device, *pBuffer, &memRequirements);
 
@@ -89,7 +95,11 @@ AppResult createBuffer(
     return APP_SUCCESS;
 }
 
-AppResult copyBuffer(Application *pApp, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+AppResult copyBuffer(
+    Application*    pApp,
+    VkBuffer        srcBuffer,
+    VkBuffer        dstBuffer,
+    VkDeviceSize    size)
 {
     const VkCommandBufferAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -106,6 +116,7 @@ AppResult copyBuffer(Application *pApp, VkBuffer srcBuffer, VkBuffer dstBuffer, 
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
 
+    // Submit buffer copy command to command buffer
     vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
     const VkBufferCopy copyRegion = { .srcOffset = 0, .dstOffset = 0, .size = size };
@@ -127,7 +138,9 @@ AppResult copyBuffer(Application *pApp, VkBuffer srcBuffer, VkBuffer dstBuffer, 
     return APP_SUCCESS;
 }
 
-AppResult createVertexBuffer(Application *pApp)
+/// Creates the vertex buffer and copies into it the contents of `VERTICES` through a staging buffer
+/// Must clean up `pApp->vertexBuffer`
+AppResult createVertexBuffer(Application* pApp)
 {
     const VkDeviceSize bufferSize = sizeof(VERTICES[0]) * VERTEX_COUNT;
 
@@ -172,7 +185,9 @@ AppResult createVertexBuffer(Application *pApp)
     return APP_SUCCESS;
 }
 
-AppResult createIndexBuffer(Application *pApp)
+/// Creates the index buffer and copies into it the contents of `INDICES` through a staging buffer
+/// Must clean up `pApp->indexBuffer`
+AppResult createIndexBuffer(Application* pApp)
 {
     const VkDeviceSize bufferSize = sizeof(INDICES[0]) * INDEX_COUNT;
 
@@ -218,7 +233,9 @@ AppResult createIndexBuffer(Application *pApp)
     return APP_SUCCESS;
 }
 
-AppResult createUniformBuffers(Application *pApp)
+/// Creates a uniform buffer for each frame in flight
+/// Must clean up `pApp->uniformBuffersMemory` and `pApp->uniformBuffersMapped`
+AppResult createUniformBuffers(Application* pApp)
 {
     const VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 

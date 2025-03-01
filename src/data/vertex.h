@@ -2,7 +2,9 @@
 #define VERTEX_H
 
 #include <cglm/cglm.h>
+#include <stdint.h>
 
+// Represents a single vertex in the vertex buffer
 typedef struct Vertex {
     vec2 pos;
     vec3 color;

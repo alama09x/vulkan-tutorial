@@ -8,36 +8,43 @@
 
 const uint32_t ATTRIBUTE_DESCRIPTION_COUNT = 2;
 
-static AppResult readFile(const char *pFilename, char **ppCode, uint32_t *pSize)
+/// Read contents of file `pFilename` and store the bytes in `ppCode`,
+/// allocating `size` bytes
+static AppResult readFile(
+    const char*    pFilename,
+    char**         ppCode,
+    uint32_t       size)
 {
-    FILE *pFile = fopen(pFilename, "rb+");
-    if (!pFile) {
+    FILE *pFile;
+    // Use safer fopen_s
+    if (fopen_s(&pFile, pFilename, "rb+") != 0) {
         fprintf(stderr, "Error: file \"%s\" could not be opened!\n", pFilename);
         return APP_ERROR;
     }
 
     fseek(pFile, 0, SEEK_END);
-    *pSize = ftell(pFile);
+    size = ftell(pFile);
 
     *ppCode = NULL;
-    *ppCode = malloc(*pSize * sizeof(char));
+    *ppCode = malloc(size * sizeof(char));
     if (!*ppCode) {
         APP_ERROR("could not allocate memory");
     }
 
     rewind(pFile);
-    fread(*ppCode, sizeof(char), *pSize, pFile);
+    fread(*ppCode, sizeof(char), size, pFile);
 
     fclose(pFile);
     return APP_SUCCESS;
 }
 
+/// Must clean up `pShaderModule`
 static AppResult createShaderModule(
-    const VkDevice device,
-    const char *pCode,
-    const uint32_t size,
-    VkShaderModule *pShaderModule
-) {
+    const VkDevice     device,
+    const char*        pCode,
+    const uint32_t     size,
+    VkShaderModule*    pShaderModule)
+{
     const VkShaderModuleCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         .codeSize = size,
@@ -52,7 +59,8 @@ static AppResult createShaderModule(
     return APP_SUCCESS;
 }
 
-AppResult createDescriptorPool(Application *pApp)
+/// Must clean up `pApp->descriptorPool`
+AppResult createDescriptorPool(Application* pApp)
 {
     const VkDescriptorPoolSize poolSize = {
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -74,7 +82,8 @@ AppResult createDescriptorPool(Application *pApp)
     return APP_SUCCESS;
 }
 
-AppResult createDescriptorSets(Application *pApp)
+/// Must clean up `pApp->descriptorSets`
+AppResult createDescriptorSets(Application* pApp)
 {
     VkDescriptorSetLayout layouts[MAX_FRAMES_IN_FLIGHT];
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -118,7 +127,8 @@ AppResult createDescriptorSets(Application *pApp)
     return APP_SUCCESS;
 }
 
-AppResult createDescriptorSetLayout(Application *pApp)
+/// Must clean up `pApp->descriptorSetLayout`
+AppResult createDescriptorSetLayout(Application* pApp)
 {
     const VkDescriptorSetLayoutBinding uboLayoutBinding = {
         .binding = 0,
@@ -160,8 +170,8 @@ static VkVertexInputBindingDescription vertexGetBindingDescription()
 
 static void vertexGetAttributeDescriptions(
     VkVertexInputAttributeDescription
-    attributeDescriptions[ATTRIBUTE_DESCRIPTION_COUNT]
-) {
+    attributeDescriptions[ATTRIBUTE_DESCRIPTION_COUNT])
+{
     attributeDescriptions[0] = (VkVertexInputAttributeDescription) {
         .binding = 0,
         .location = 0,
@@ -177,13 +187,15 @@ static void vertexGetAttributeDescriptions(
     };
 }
 
-AppResult createGraphicsPipeline(Application *pApp)
+/// Must clean up `pApp->graphicsPipeline`
+AppResult createGraphicsPipeline(Application* pApp)
 {
     uint32_t vertShaderSize, fragShaderSize;
     char *pVertShaderCode, *pFragShaderCode;
 
-    readFile("./bin/vert.spv", &pVertShaderCode, &vertShaderSize);
-    readFile("./bin/frag.spv", &pFragShaderCode, &fragShaderSize);
+    // TODO: make constants
+    readFile("./bin/shader.vert.spv", &pVertShaderCode, vertShaderSize);
+    readFile("./bin/shader.frag.spv", &pFragShaderCode, fragShaderSize);
 
     VkShaderModule vertShaderModule, fragShaderModule;
     createShaderModule(

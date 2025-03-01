@@ -3,9 +3,9 @@
 
 #include "application.h"
 
-AppResult createDescriptorPool(Application *pApp);
-AppResult createDescriptorSetLayout(Application *pApp);
-AppResult createDescriptorSets(Application *pApp);
-AppResult createGraphicsPipeline(Application *pApp);
+AppResult createDescriptorPool(Application* pApp);
+AppResult createDescriptorSetLayout(Application* pApp);
+AppResult createDescriptorSets(Application* pApp);
+AppResult createGraphicsPipeline(Application* pApp);
 
 #endif

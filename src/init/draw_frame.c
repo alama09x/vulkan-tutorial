@@ -10,7 +10,8 @@
 #include <stdlib.h>
 #include <cglm/cglm.h>
 
-AppResult cleanupSwapchain(Application *pApp)
+/// Clean up the swapchain and its framebuffers, image views
+AppResult cleanupSwapchain(Application* pApp)
 {
     if (pApp->pSwapchainFramebuffers) {
         for (uint32_t i = 0; i < pApp->swapchainImageCount; i++) {
@@ -34,15 +35,19 @@ AppResult cleanupSwapchain(Application *pApp)
     return APP_SUCCESS;
 }
 
-static AppResult recreateSwapchain(Application *pApp)
+/// Recreate the swapchain
+static AppResult recreateSwapchain(Application* pApp)
 {
     int32_t width = 0, height = 0;
     glfwGetFramebufferSize(pApp->pWindow, &width, &height);
+
+    // Wait until window is a valid size
     while (width == 0 || height == 0) {
         glfwGetFramebufferSize(pApp->pWindow, &width, &height);
         glfwWaitEvents();
     }
 
+    // Wait for all queues to finish operations
     vkDeviceWaitIdle(pApp->device);
 
     APP_EXPECT(cleanupSwapchain(pApp), "failed to cleanup swapchain");
@@ -53,16 +58,19 @@ static AppResult recreateSwapchain(Application *pApp)
     return APP_SUCCESS;
 }
 
+/// Called on every frame
 static void updateUniformBuffer(
-    Application *pApp,
-    uint32_t currentImage,
-    const time_t *pStartTime
+    Application*     pApp,
+    uint32_t         currentImage,
+    const time_t*    pStartTime
 ) {
     const time_t currentTime = time(NULL);
     const double time = difftime(currentTime, *pStartTime);
 
     UniformBufferObject ubo;
     glm_mat4_copy(GLM_MAT4_IDENTITY, ubo.model);
+
+    // Transform ubo matrices
 
     glm_rotate(
         ubo.model,
@@ -84,12 +92,18 @@ static void updateUniformBuffer(
         10.0f,
         ubo.proj
     );
+    // Use Vulkan coordinate system
     ubo.proj[1][1] *= -1;
 
+    // Copy the new UBO to its respective buffer
     memcpy(pApp->uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
-AppResult drawFrame(Application *pApp, uint32_t currentFrame, const time_t *pStartTime)
+/// Draws a frame
+AppResult drawFrame(
+    Application*     pApp,
+    uint32_t         currentFrame,
+    const time_t*    pStartTime)
 {
     vkWaitForFences(
         pApp->device,
@@ -110,6 +124,7 @@ AppResult drawFrame(Application *pApp, uint32_t currentFrame, const time_t *pSta
     );
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        // Silent recovery
         recreateSwapchain(pApp);
         return APP_SUCCESS;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
@@ -126,6 +141,7 @@ AppResult drawFrame(Application *pApp, uint32_t currentFrame, const time_t *pSta
         currentFrame
     );
 
+    // Sync objects
     const VkSemaphore waitSemaphores[] = {
         pApp->imageAvailableSemaphores[currentFrame],
     };
@@ -183,4 +199,3 @@ AppResult drawFrame(Application *pApp, uint32_t currentFrame, const time_t *pSta
 
     return APP_SUCCESS;
 }
-

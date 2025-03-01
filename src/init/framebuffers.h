@@ -3,6 +3,6 @@
 
 #include "application.h"
 
-AppResult createFramebuffers(Application *pApp);
+AppResult createFramebuffers(Application* pApp);
 
 #endif

@@ -6,19 +6,18 @@
 #define QUEUE_FAMILY_INDICES_COUNT 3
 
 typedef struct QueueFamilyIndices {
-    uint32_t *pGraphicsFamily;
-    uint32_t *pPresentFamily;
-    uint32_t *pTransferFamily;
+    uint32_t*       pGraphicsFamily;
+    uint32_t*       pPresentFamily;
+    uint32_t*       pTransferFamily;
 } QueueFamilyIndices;
 
 void findQueueFamilies(
-    VkPhysicalDevice device,
-    VkSurfaceKHR surface,
-    QueueFamilyIndices *pIndices
-);
-void cleanupQueueFamilies(QueueFamilyIndices *pIndices);
+    VkPhysicalDevice        device,
+    VkSurfaceKHR            surface,
+    QueueFamilyIndices*     pIndices);
+void cleanupQueueFamilies(QueueFamilyIndices* pIndices);
 
-AppResult pickPhysicalDevice(Application *pApp);
-AppResult createLogicalDevice(Application *pApp);
+AppResult pickPhysicalDevice(Application* pApp);
+AppResult createLogicalDevice(Application* pApp);
 
 #endif

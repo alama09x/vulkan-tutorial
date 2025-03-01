@@ -4,8 +4,8 @@
 #include <string.h>
 
 static void getRequiredExtensions(
-    uint32_t *pRequiredExtensionCount,
-    const char **ppRequiredExtensions)
+    uint32_t* pRequiredExtensionCount,
+    const char** ppRequiredExtensions)
 {
     uint32_t glfwExtensionCount = 0;
     const char **ppGlfwExtensions =

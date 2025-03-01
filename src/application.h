@@ -9,6 +9,7 @@
 extern const bool ENABLE_VALIDATION_LAYERS;
 #define MAX_FRAMES_IN_FLIGHT 2
 
+/// The general state of the program
 typedef struct Application {
     GLFWwindow*                 pWindow;
     VkInstance                  instance;
@@ -60,11 +61,13 @@ typedef struct Application {
     VkDescriptorSet             descriptorSets[MAX_FRAMES_IN_FLIGHT];
 } Application;
 
+/// Represents the success or failure of a process
 typedef enum AppResult {
     APP_SUCCESS = VK_SUCCESS,
     APP_ERROR,
 } AppResult;
 
+// Macros to simplify handling `AppResult` objects
 #define APP_ERROR_MSG(msg)                  \
     fprintf(stderr, "Error: %s!\n", (msg));
 
@@ -73,7 +76,7 @@ typedef enum AppResult {
     return APP_ERROR;
 
 #define APP_EXPECT(expr, msg)               \
-    if ((expr) != APP_SUCCESS) {            \
+    if ((AppResult)(expr) != APP_SUCCESS) {            \
         APP_ERROR(msg)                      \
     }
 

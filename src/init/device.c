@@ -21,18 +21,20 @@ const char *const DEVICE_EXTENSIONS[] = {
 #endif
 };
 
-static bool queueFamilyIndicesComplete(const QueueFamilyIndices *pIndices)
+static bool queueFamilyIndicesComplete(const QueueFamilyIndices* pIndices)
 {
     return pIndices->pGraphicsFamily != NULL &&
-        pIndices->pTransferFamily != NULL &&
-        pIndices->pPresentFamily != NULL;
+           pIndices->pTransferFamily != NULL &&
+           pIndices->pPresentFamily != NULL;
 }
 
+/// Populates `pIndices` with found queue family indices
+/// Must clean up `pIndices` with `cleanupQueueFamilies(pIndices)`
 void findQueueFamilies(
-    VkPhysicalDevice device,
-    VkSurfaceKHR surface,
-    QueueFamilyIndices *pIndices
-) {
+    VkPhysicalDevice        device,
+    VkSurfaceKHR            surface,
+    QueueFamilyIndices*     pIndices)
+{
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, NULL);
 
@@ -76,6 +78,7 @@ void cleanupQueueFamilies(QueueFamilyIndices *pIndices)
     free(pIndices->pPresentFamily);
 }
 
+/// Return true unless at least one of the required `DEVICE_EXTENSIONS` is not suppported
 static bool checkDeviceExtensionSupport(VkPhysicalDevice device)
 {
     uint32_t extensionCount;
@@ -110,6 +113,8 @@ static bool checkDeviceExtensionSupport(VkPhysicalDevice device)
     return true;
 }
 
+/// A device is suitable if it has complete `QueueFamilyIndices`, all extensions are supported,
+/// and the swapchain supports formats and present modes
 static bool deviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
     QueueFamilyIndices indices;
@@ -134,21 +139,28 @@ static bool deviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
     return indicesComplete && extensionsSupported && swapchainAdequate;
 }
 
+/// Must clean up `pApp->device`
 AppResult createLogicalDevice(Application *pApp)
 {
     QueueFamilyIndices indices;
     findQueueFamilies(pApp->physicalDevice, pApp->surface, &indices);
 
+    // TODO: check queue family indices against NULL
     const uint32_t queueFamilies[] = {
         *indices.pGraphicsFamily,
         *indices.pPresentFamily,
         *indices.pTransferFamily
     };
 
+    // Only use unique queue families (for example, the graphics family and transfer family
+    // could be of the same index)
+    // Akin to creating a std::set in C++ for only unique indices
     uint32_t *pUniqueQueueFamilies =
         malloc(QUEUE_FAMILY_INDICES_COUNT * sizeof(uint32_t));
+
     uint32_t uniqueCount = 0;
 
+    // TODO: implement lookup table for O(n) as opposed to this O(n^2)
     for (uint8_t i = 0; i < QUEUE_FAMILY_INDICES_COUNT; i++) {
         bool unique = true;
         for (uint8_t j = 0; j < uniqueCount; j++) {
@@ -163,6 +175,7 @@ AppResult createLogicalDevice(Application *pApp)
         }
     }
 
+    // Used for device queue creation for each queue family
     VkDeviceQueueCreateInfo pQueueCreateInfos[uniqueCount];
     const float queuePriority = 1.0;
 
@@ -197,6 +210,7 @@ AppResult createLogicalDevice(Application *pApp)
         "failed to create logical device"
     );
 
+    // Get device queue from each respective queue family
     vkGetDeviceQueue(pApp->device, *indices.pGraphicsFamily, 0, &pApp->graphicsQueue);
     vkGetDeviceQueue(pApp->device, *indices.pTransferFamily, 0, &pApp->transferQueue);
     vkGetDeviceQueue(pApp->device, *indices.pPresentFamily, 0, &pApp->presentQueue);
@@ -206,9 +220,9 @@ AppResult createLogicalDevice(Application *pApp)
     return APP_SUCCESS;
 }
 
-AppResult pickPhysicalDevice(Application *pApp)
+// Pick GPU that is suitable according to `deviceSuitable`. See `deviceSuitable` for conditions.
+AppResult pickPhysicalDevice(Application* pApp)
 {
-
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(pApp->instance, &deviceCount, NULL);
 

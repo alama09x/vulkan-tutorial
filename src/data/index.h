@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+// Index type for index buffer
 typedef uint16_t Index;
 
 extern const uint32_t INDEX_COUNT;

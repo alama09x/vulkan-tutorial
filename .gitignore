@@ -1,1 +1,7 @@
-/bin/*
+bin/
+build/
+out/
+.vs/
+VulkanTutorial*
+cglm-0.dll
+cglm-0.pdb

@@ -1,4 +1,5 @@
 #include "vertex.h"
+#include <stdint.h>
 
 const uint32_t VERTEX_COUNT = 4;
 const Vertex VERTICES[] = {

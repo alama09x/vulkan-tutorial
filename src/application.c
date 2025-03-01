@@ -23,10 +23,12 @@
     const bool ENABLE_VALIDATION_LAYERS = true;
 #endif
 
+/// Window dimensions in physical units
 static const uint32_t WIDTH = 800;
 static const uint32_t HEIGHT = 600;
 
-static AppResult createSurface(Application *pApp)
+/// Must explicitly clean up `pApp->pWindow`
+static AppResult createSurface(Application* pApp)
 {
     APP_EXPECT(
         glfwCreateWindowSurface(
@@ -41,19 +43,22 @@ static AppResult createSurface(Application *pApp)
     return APP_SUCCESS;
 }
 
+/// Called every time the window is resized
 static void framebufferResizeCallback(
-    GLFWwindow *pWindow,
-    __attribute__((unused))int width,
-    __attribute__((unused))int height
-) {
-    Application *pApp = (Application *)glfwGetWindowUserPointer(pWindow);
+    GLFWwindow*                   pWindow,
+    __attribute__((unused))int    width,
+    __attribute__((unused))int    height)
+{
+    Application *pApp = (Application*)glfwGetWindowUserPointer(pWindow);
     pApp->framebufferResized = true;
 }
 
-static AppResult initWindow(Application *pApp)
+/// Must explicitly destroy GLFW instance
+static AppResult initWindow(Application* pApp)
 {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
     if (!(pApp->pWindow = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", NULL, NULL))) {
         APP_ERROR("failed to create window");
     }
@@ -64,7 +69,8 @@ static AppResult initWindow(Application *pApp)
     return APP_SUCCESS;
 }
 
-static AppResult initVulkan(Application *pApp)
+/// Must explicitly destroy fields of `pApp`
+static AppResult initVulkan(Application* pApp)
 {
     APP_EXPECT(createInstance(pApp), "failed to create instance");
 
@@ -88,6 +94,7 @@ static AppResult initVulkan(Application *pApp)
 
     APP_EXPECT(createFramebuffers(pApp), "failed to create framebuffers");
 
+    // Create multiple command pools with single queue family indices instance
     QueueFamilyIndices indices;
     findQueueFamilies(pApp->physicalDevice, pApp->surface, &indices);
 
@@ -121,24 +128,30 @@ static AppResult initVulkan(Application *pApp)
     return APP_SUCCESS;
 }
 
-static AppResult mainLoop(Application *pApp)
+static AppResult mainLoop(Application* pApp)
 {
     uint32_t currentFrame = 0;
     const time_t startTime = time(NULL);
     pApp->framebufferResized = false;
+
     while (!glfwWindowShouldClose(pApp->pWindow)) {
         glfwPollEvents();
         drawFrame(pApp, currentFrame, &startTime);
+        
+        // Limit `currentFrame` to range [0, MAX_FRAMES_IN_FLIGHT)
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
+    // Wait for all device queues to finish operations
     vkDeviceWaitIdle(pApp->device);
 
     return APP_SUCCESS;
 }
 
-static AppResult cleanup(struct Application *pApp)
+static AppResult cleanup(Application* pApp)
 {
+    // Clean up everything in reverse order to preserve state in between calls
+
     cleanupSwapchain(pApp);
 
     vkDestroyBuffer(pApp->device, pApp->indexBuffer, NULL);
@@ -150,6 +163,7 @@ static AppResult cleanup(struct Application *pApp)
     vkDestroyPipeline(pApp->device, pApp->graphicsPipeline, NULL);
     vkDestroyPipelineLayout(pApp->device, pApp->pipelineLayout, NULL);
 
+    // Clean up all uniform buffers
     for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroyBuffer(pApp->device, pApp->uniformBuffers[i], NULL);
         vkFreeMemory(pApp->device, pApp->uniformBuffersMemory[i], NULL);
@@ -161,6 +175,7 @@ static AppResult cleanup(struct Application *pApp)
 
     vkDestroyRenderPass(pApp->device, pApp->renderPass, NULL);
 
+    // Destroy all sync objects
     for (uint8_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroySemaphore(pApp->device, pApp->imageAvailableSemaphores[i], NULL);
         vkDestroySemaphore(pApp->device, pApp->renderFinishedSemaphores[i], NULL);
@@ -186,7 +201,8 @@ static AppResult cleanup(struct Application *pApp)
     return APP_SUCCESS;
 }
 
-AppResult appRun(Application *pApp)
+/// Initialize `pApp` and run it
+AppResult appRun(Application* pApp)
 {
     APP_EXPECT(initWindow(pApp), "failed to initialize window");
     APP_EXPECT(initVulkan(pApp), "failed to initialize Vulkan");

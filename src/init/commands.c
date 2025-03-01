@@ -5,7 +5,11 @@
 
 #include <stdio.h>
 
-AppResult createCommandPool(Application *pApp, VkCommandPool *pCommandPool, uint32_t queueFamilyIndex)
+/// Must clean up `pCommandPool`
+AppResult createCommandPool(
+    Application *       pApp,
+    VkCommandPool*      pCommandPool,
+    uint32_t            queueFamilyIndex)
 {
     QueueFamilyIndices queueFamilyIndices;
     findQueueFamilies(pApp->physicalDevice, pApp->surface, &queueFamilyIndices);
@@ -24,6 +28,7 @@ AppResult createCommandPool(Application *pApp, VkCommandPool *pCommandPool, uint
     return APP_SUCCESS;
 }
 
+/// Must clean up `pApp->commandBuffers`
 AppResult createCommandBuffers(Application *pApp)
 {
     const VkCommandBufferAllocateInfo allocInfo = {
@@ -41,12 +46,13 @@ AppResult createCommandBuffers(Application *pApp)
     return APP_SUCCESS;
 }
 
+/// Perform operations on `commandBuffer` on `currentFrame` to the framebuffer of `imageIndex`
 AppResult recordCommandBuffer(
-    Application *pApp,
-    VkCommandBuffer commandBuffer,
-    uint32_t imageIndex,
-    uint32_t currentFrame
-) {
+    Application*        pApp,
+    VkCommandBuffer     commandBuffer,
+    uint32_t            imageIndex,
+    uint32_t            currentFrame)
+{
     const VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = 0,
@@ -58,6 +64,7 @@ AppResult recordCommandBuffer(
         "failed to begin recording command buffer"
     );
 
+    // To clear background
     const VkClearValue clearColor = {
         .color = {
             .float32 = { 0.0f, 0.0f, 0.0f, 0.0f },
@@ -77,13 +84,18 @@ AppResult recordCommandBuffer(
     };
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    // Use graphics pipeline
     vkCmdBindPipeline(
         commandBuffer,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         pApp->graphicsPipeline
     );
 
+    // One vertex buffer
     const VkBuffer vertexBuffers[] = { pApp->vertexBuffer };
+
+    // No buffer offset
     const VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(commandBuffer, pApp->indexBuffer, 0, VK_INDEX_TYPE_UINT16);

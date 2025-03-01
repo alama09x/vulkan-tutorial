@@ -1,6 +1,8 @@
 #ifndef UTILITY_H
 #define UTILITY_H
 
-void clamp(int *val, int min, int max);
+// Contains simple utility functions
+
+void clamp(int* pVal, int min, int max);
 
 #endif
