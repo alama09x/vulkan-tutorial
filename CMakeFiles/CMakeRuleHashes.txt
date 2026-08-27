@@ -1,0 +1,5 @@
+# Hashes of file build rules.
+a96bbd6a9b23ce9ef303d07b4f73d0b2 CMakeFiles/CompileShaders
+f9dc4dc395c47510ed0a3cdf195f71e2 bin/shader.vert.spv
+de500a613868fabe7a57f859520978de lib/glfw/CMakeFiles/uninstall
+1394c22e9166814a5564152eb41bbe87 lib/glfw/src/CMakeFiles/update_mappings

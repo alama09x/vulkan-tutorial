@@ -9,30 +9,38 @@
 const uint32_t ATTRIBUTE_DESCRIPTION_COUNT = 2;
 
 /// Read contents of file `pFilename` and store the bytes in `ppCode`,
-/// allocating `size` bytes
+/// allocating `*pSize` bytes
 static AppResult readFile(
     const char*    pFilename,
     char**         ppCode,
-    uint32_t       size)
+    uint32_t*      pSize)
 {
+#ifdef _WIN32
     FILE *pFile;
     // Use safer fopen_s
     if (fopen_s(&pFile, pFilename, "rb+") != 0) {
         fprintf(stderr, "Error: file \"%s\" could not be opened!\n", pFilename);
         return APP_ERROR;
     }
+#elifdef __APPLE__
+    FILE *pFile = fopen(pFilename, "rb+");
+    if (!pFile) {
+        fprintf(stderr, "Error: file \"%s\" could not be opened!\n", pFilename);
+        return APP_ERROR;
+    }
+#endif
 
     fseek(pFile, 0, SEEK_END);
-    size = ftell(pFile);
+    *pSize = ftell(pFile);
 
     *ppCode = NULL;
-    *ppCode = malloc(size * sizeof(char));
+    *ppCode = malloc(*pSize * sizeof(char));
     if (!*ppCode) {
         APP_ERROR("could not allocate memory");
     }
 
     rewind(pFile);
-    fread(*ppCode, sizeof(char), size, pFile);
+    fread(*ppCode, sizeof(char), *pSize, pFile);
 
     fclose(pFile);
     return APP_SUCCESS;
@@ -194,8 +202,8 @@ AppResult createGraphicsPipeline(Application* pApp)
     char *pVertShaderCode, *pFragShaderCode;
 
     // TODO: make constants
-    readFile("./bin/shader.vert.spv", &pVertShaderCode, vertShaderSize);
-    readFile("./bin/shader.frag.spv", &pFragShaderCode, fragShaderSize);
+    readFile("./bin/shader.vert.spv", &pVertShaderCode, &vertShaderSize);
+    readFile("./bin/shader.frag.spv", &pFragShaderCode, &fragShaderSize);
 
     VkShaderModule vertShaderModule, fragShaderModule;
     createShaderModule(
